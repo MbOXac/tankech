@@ -24,7 +24,7 @@ export default function Header() {
           </nav>
 
           <div className="hidden md:flex items-center">
-            <a href="tel:+21200000000" className="flex items-center gap-2 bg-primary text-background px-6 py-2.5 rounded hover:bg-primary/90 transition-colors font-medium">
+            <a href="tel:+212 675-882137" className="flex items-center gap-2 bg-primary text-background px-6 py-2.5 rounded hover:bg-primary/90 transition-colors font-medium">
               <Phone size={18} />
               <span>Demander un devis</span>
             </a>
@@ -43,7 +43,7 @@ export default function Header() {
             <Link href="/services" className="text-text-primary block font-medium" onClick={() => setIsOpen(false)}>Services</Link>
             <Link href="/about" className="text-text-primary block font-medium" onClick={() => setIsOpen(false)}>À Propos</Link>
             <Link href="/contact" className="text-text-primary block font-medium" onClick={() => setIsOpen(false)}>Contact</Link>
-            <a href="tel:+21200000000" className="flex items-center justify-center gap-2 bg-primary text-background px-6 py-2.5 rounded mt-4 font-medium">
+            <a href="tel:+212 675-882137" className="flex items-center justify-center gap-2 bg-primary text-background px-6 py-2.5 rounded mt-4 font-medium">
               <Phone size={18} />
               <span>Demander un devis</span>
             </a>

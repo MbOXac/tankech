@@ -39,7 +39,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <p className="font-bold text-primary mb-1">Téléphone & WhatsApp</p>
-                    <a href="tel:+21200000000" className="text-text-secondary hover:text-accent transition-colors">+212 000 00 00 00</a>
+                    <a href="tel:+212675-882137" className="text-text-secondary hover:text-accent transition-colors">+212 6 75 88 21 37</a>
                   </div>
                 </div>
 
