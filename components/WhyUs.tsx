@@ -1,54 +1,83 @@
-import { CheckCircle2 } from "lucide-react";
+"use client";
+
+import ScrollReveal from "./ScrollReveal";
+import {
+  Shield,
+  Clock,
+  Award,
+  Users,
+  ThumbsUp,
+  Headphones,
+} from "lucide-react";
+
+const reasons = [
+  {
+    icon: Shield,
+    title: "Garantie Décennale",
+    description:
+      "Tous nos travaux de gros œuvre sont couverts par notre garantie décennale pour votre tranquillité.",
+  },
+  {
+    icon: Clock,
+    title: "Urgence 24/7",
+    description:
+      "Plomberie, électricité — nos équipes interviennent en urgence à toute heure, 7 jours sur 7.",
+  },
+  {
+    icon: Award,
+    title: "Finition Artisanale",
+    description:
+      "Nos artisans maîtrisent les techniques traditionnelles marocaines : tadelakt, zellige, bois de cèdre.",
+  },
+  {
+    icon: Users,
+    title: "Équipe Qualifiée",
+    description:
+      "Maçons, électriciens, plombiers, peintres — chaque corps de métier est représenté par des experts.",
+  },
+  {
+    icon: ThumbsUp,
+    title: "Devis Gratuit & Transparent",
+    description:
+      "Pas de surprise : nos devis sont détaillés, gratuits et sans engagement.",
+  },
+  {
+    icon: Headphones,
+    title: "Suivi Personnalisé",
+    description:
+      "Un chef de projet dédié vous accompagne du début à la fin de votre chantier.",
+  },
+];
 
 export default function WhyUs() {
-  const reasons = [
-    "Équipe locale d'experts certifiés à Tanger",
-    "Devis transparent et détaillé sous 48h",
-    "Respect strict des délais annoncés",
-    "Matériaux de première qualité",
-    "Suivi de chantier personnalisé",
-    "Garantie décennale sur le gros œuvre",
-    "Interventions bricolage rapides",
-    "Service client à l'écoute et réactif",
-  ];
-
   return (
-    <section className="py-24 bg-[#F0EEE6]">
-      <div className="container mx-auto px-4">
-        <div className="flex flex-col lg:flex-row gap-16 items-center">
-          <div className="lg:w-1/2">
-            <h2 className="text-4xl font-serif font-bold text-primary mb-6">Pourquoi choisir TANKECH ?</h2>
-            <p className="text-text-secondary text-lg mb-10 leading-relaxed">
-              Nous allions l'expertise d'une grande entreprise de construction à l'agilité d'un service de bricolage de proximité. Notre engagement : la qualité sans compromis et votre tranquillité d'esprit totale.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {reasons.map((reason, index) => (
-                <div key={index} className="flex items-start gap-3">
-                  <CheckCircle2 className="text-accent shrink-0 mt-0.5" size={20} />
-                  <span className="text-primary font-medium">{reason}</span>
+    <section className="py-20 md:py-28 bg-white">
+      <div className="mx-auto max-w-7xl px-4">
+        <ScrollReveal>
+          <div className="text-center mb-14">
+            <span className="inline-block rounded-full bg-yellow-100 px-4 py-1.5 text-sm font-semibold text-yellow-800 mb-4">
+              Pourquoi TANKECH
+            </span>
+            <h2 className="text-3xl md:text-5xl font-black text-gray-900">
+              Des garanties qui <span className="text-yellow-500">font la différence</span>
+            </h2>
+          </div>
+        </ScrollReveal>
+
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {reasons.map((r, i) => (
+            <ScrollReveal key={r.title} delay={i * 80}>
+              <div className="group rounded-2xl border border-gray-100 bg-gray-50 p-7 transition-all duration-300 hover:border-yellow-200 hover:bg-yellow-50/50 hover:shadow-lg">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-yellow-100 text-yellow-600 transition-colors group-hover:bg-yellow-500 group-hover:text-white">
+                  <r.icon className="h-7 w-7" />
                 </div>
-              ))}
-            </div>
-          </div>
-          <div className="lg:w-1/2 relative">
-            <div className="aspect-square bg-primary/5 rounded-2xl border border-primary/10 flex items-center justify-center p-8 overflow-hidden relative">
-               <div className="absolute inset-0 bg-primary/10"></div>
-               {/* Abstract placeholder for high quality image */}
-               <div className="relative z-10 w-full h-full border-2 border-dashed border-primary/30 rounded-xl flex items-center justify-center bg-white/50 backdrop-blur-sm">
-                  <span className="text-primary/40 font-medium">Image de chantier / équipe premium</span>
-               </div>
-               
-               <div className="absolute -bottom-8 -left-8 bg-white p-6 rounded-xl shadow-xl border border-primary/10">
-                 <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 bg-accent rounded-full flex items-center justify-center text-primary font-bold text-xl">T</div>
-                   <div>
-                     <p className="font-bold text-primary">Qualité Premium</p>
-                     <p className="text-sm text-text-secondary">Approuvé par nos clients</p>
-                   </div>
-                 </div>
-               </div>
-            </div>
-          </div>
+                <h3 className="text-lg font-bold text-gray-900">{r.title}</h3>
+                <p className="mt-2 text-sm text-gray-500 leading-relaxed">
+                  {r.description}
+                </p>
+              </div>
+            </ScrollReveal>
+          ))}
         </div>
       </div>
     </section>

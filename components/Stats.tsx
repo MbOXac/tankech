@@ -1,26 +1,75 @@
-export default function Stats() {
-  const stats = [
-    { value: "15+", label: "Années d'expérience" },
-    { value: "500+", label: "Projets Réalisés" },
-    { value: "100%", label: "Clients Satisfaits" },
-    { value: "24/7", label: "Assistance Bricolage" },
-  ];
+"use client";
+
+import { useEffect, useState, useRef } from "react";
+import ScrollReveal from "./ScrollReveal";
+
+const stats = [
+  { value: 150, suffix: "+", label: "Projets Réalisés" },
+  { value: 10, suffix: "+", label: "Ans d'Expérience" },
+  { value: 98, suffix: "%", label: "Clients Satisfaits" },
+  { value: 24, suffix: "/7", label: "Disponibilité Urgence" },
+];
+
+function AnimatedNumber({ target, suffix }: { target: number; suffix: string }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
+  const started = useRef(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !started.current) {
+          started.current = true;
+          const duration = 2000;
+          const step = target / (duration / 16);
+          let current = 0;
+
+          const timer = setInterval(() => {
+            current += step;
+            if (current >= target) {
+              current = target;
+              clearInterval(timer);
+            }
+            setCount(Math.floor(current));
+          }, 16);
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [target]);
 
   return (
-    <section className="bg-primary py-16 text-background border-t border-accent/20">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 divide-x divide-background/10">
-          {stats.map((stat, index) => (
-            <div key={index} className="text-center px-4">
-              <div className="text-4xl md:text-5xl font-serif font-bold text-accent mb-2">
-                {stat.value}
+    <span ref={ref} className="tabular-nums">
+      {count}
+      {suffix}
+    </span>
+  );
+}
+
+export default function Stats() {
+  return (
+    <section className="py-16 md:py-20 bg-yellow-500">
+      <div className="mx-auto max-w-7xl px-4">
+        <ScrollReveal>
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-4 text-center">
+            {stats.map((s) => (
+              <div key={s.label}>
+                <p className="text-4xl md:text-6xl font-black text-gray-900">
+                  <AnimatedNumber target={s.value} suffix={s.suffix} />
+                </p>
+                <p className="mt-2 text-sm md:text-base font-medium text-gray-800">
+                  {s.label}
+                </p>
               </div>
-              <div className="text-background/80 font-medium">
-                {stat.label}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </ScrollReveal>
       </div>
     </section>
   );

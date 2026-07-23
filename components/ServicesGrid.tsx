@@ -1,250 +1,241 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
-import {
-  Home,
-  Ruler,
-  Wrench,
-  Zap,
-  Paintbrush,
-  Hammer,
-  Search,
-  CheckCircle2,
-  PhoneCall,
-  ShieldCheck,
-  Clock,
-  Sparkles,
-  ArrowRight
-} from "lucide-react";
-import { serviceCategories, ServiceCategory } from "@/data/servicesData";
+import { useState, useMemo } from "react";
+import { servicesData, ServiceCategory } from "@/data/servicesData";
 import QuoteModal from "./QuoteModal";
-
-const iconMap = {
+import ScrollReveal from "./ScrollReveal";
+import {
+  Building2,
   Home,
-  Ruler,
-  Wrench,
+  Droplets,
   Zap,
   Paintbrush,
-  Hammer,
+  Wrench,
+  Search,
+  Check,
+  ArrowRight,
+  AlertTriangle,
+  Shield,
+  Clock,
+  Award,
+} from "lucide-react";
+
+const iconMap: Record<string, React.ElementType> = {
+  Building2,
+  Home,
+  Droplets,
+  Zap,
+  Paintbrush,
+  Wrench,
+};
+
+const badgeIconMap: Record<string, React.ElementType> = {
+  red: AlertTriangle,
+  blue: Shield,
+  green: Award,
+  purple: Award,
+  orange: Clock,
+  yellow: Clock,
 };
 
 export default function ServicesGrid() {
-  const [activeCategory, setActiveCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [modalServiceId, setModalServiceId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("all");
+  const [search, setSearch] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] =
+    useState<ServiceCategory | null>(null);
 
-  const filteredServices = serviceCategories.filter((service) => {
-    const matchesCategory = activeCategory === "all" || service.id === activeCategory;
-    const matchesSearch =
-      searchQuery.trim() === "" ||
-      service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      service.shortDescription.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      service.items.some((item) => item.toLowerCase().includes(searchQuery.toLowerCase()));
+  const tabs = [
+    { id: "all", label: "Tous" },
+    ...servicesData.map((s) => ({ id: s.slug, label: s.title })),
+  ];
 
-    return matchesCategory && matchesSearch;
-  });
+  const filtered = useMemo(() => {
+    let data = servicesData;
+    if (activeTab !== "all") {
+      data = data.filter((s) => s.slug === activeTab);
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      data = data
+        .map((cat) => ({
+          ...cat,
+          services: cat.services.filter(
+            (s) =>
+              s.name.toLowerCase().includes(q) ||
+              s.description.toLowerCase().includes(q)
+          ),
+        }))
+        .filter((cat) => cat.services.length > 0);
+    }
+    return data;
+  }, [activeTab, search]);
 
-  const handleOpenQuote = (serviceId: string) => {
-    setModalServiceId(serviceId);
+  const openModal = (cat: ServiceCategory) => {
+    setSelectedCategory(cat);
+    setModalOpen(true);
   };
 
   return (
-    <section className="py-20 bg-background" id="services-section">
-      <div className="container mx-auto px-4">
-        
-        {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <span className="inline-block bg-accent/15 text-primary text-sm font-bold px-4 py-1.5 rounded-full mb-4">
-            Construction, Rénovation & Bricolage à Tanger
-          </span>
-          <h2 className="text-4xl md:text-5xl font-serif font-bold text-primary mb-6">
-            Nos Services TANKECH
-          </h2>
-          <p className="text-text-secondary text-lg leading-relaxed">
-            De la construction sur-mesure aux interventions rapides du quotidien, découvrez notre palette complète de prestations professionnelles.
-          </p>
-        </div>
+    <section id="services" className="py-20 md:py-28 bg-gray-50">
+      <div className="mx-auto max-w-7xl px-4">
+        {/* Section header */}
+        <ScrollReveal>
+          <div className="text-center mb-12">
+            <span className="inline-block rounded-full bg-yellow-100 px-4 py-1.5 text-sm font-semibold text-yellow-800 mb-4">
+              Nos Services
+            </span>
+            <h2 className="text-3xl md:text-5xl font-black text-gray-900">
+              Des solutions complètes <br className="hidden md:block" />
+              <span className="text-yellow-500">pour chaque projet</span>
+            </h2>
+            <p className="mt-4 text-gray-500 max-w-2xl mx-auto">
+              De la construction neuve au petit bricolage, TANKECH couvre tous
+              vos besoins avec des artisans qualifiés et des garanties solides.
+            </p>
+          </div>
+        </ScrollReveal>
 
-        {/* Filter and Search Bar */}
-        <div className="max-w-5xl mx-auto mb-12 space-y-6">
-          
-          {/* Search Bar */}
-          <div className="relative max-w-xl mx-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" size={20} />
+        {/* Search bar */}
+        <ScrollReveal delay={100}>
+          <div className="relative max-w-lg mx-auto mb-8">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Rechercher un service (ex: Tadelakt, Fuite, Placo, Piscine...)"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-primary/15 rounded-full py-3.5 pl-12 pr-6 text-primary shadow-sm focus:outline-none focus:ring-2 focus:ring-accent transition-all"
+              placeholder="Rechercher un service… (ex: tadelakt, piscine, fuite)"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-12 pr-4 text-sm shadow-sm transition focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-100"
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-text-secondary hover:text-primary font-bold"
-              >
-                Effacer
-              </button>
-            )}
           </div>
+        </ScrollReveal>
 
-          {/* Category Tabs */}
-          <div className="flex flex-wrap justify-center gap-2">
-            <button
-              onClick={() => setActiveCategory("all")}
-              className={`px-5 py-2.5 rounded-full font-medium text-sm transition-all ${
-                activeCategory === "all"
-                  ? "bg-primary text-background shadow-md"
-                  : "bg-white text-text-primary hover:bg-primary/5 border border-primary/10"
-              }`}
-            >
-              Tous les services ({serviceCategories.length})
-            </button>
-            {serviceCategories.map((cat) => (
+        {/* Category tabs */}
+        <ScrollReveal delay={200}>
+          <div className="flex flex-wrap justify-center gap-2 mb-12">
+            {tabs.map((tab) => (
               <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className={`px-5 py-2.5 rounded-full font-medium text-sm transition-all flex items-center gap-2 ${
-                  activeCategory === cat.id
-                    ? "bg-primary text-background shadow-md"
-                    : "bg-white text-text-primary hover:bg-primary/5 border border-primary/10"
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${
+                  activeTab === tab.id
+                    ? "bg-gray-900 text-white shadow-lg"
+                    : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
                 }`}
               >
-                <span>{cat.title}</span>
-                {cat.badge?.type === "urgent" && (
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                )}
+                {tab.label}
               </button>
             ))}
           </div>
-        </div>
+        </ScrollReveal>
 
-        {/* Services Cards Grid */}
-        {filteredServices.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border border-primary/10 max-w-xl mx-auto">
-            <p className="text-lg text-text-secondary mb-4">Aucun service ne correspond à votre recherche "{searchQuery}".</p>
-            <button
-              onClick={() => {
-                setSearchQuery("");
-                setActiveCategory("all");
-              }}
-              className="bg-primary text-background px-6 py-2.5 rounded-lg font-bold hover:bg-primary/90 transition-colors"
-            >
-              Réinitialiser les filtres
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredServices.map((service) => {
-              const IconComponent = iconMap[service.iconName] || Home;
+        {/* Service cards grid */}
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((cat, i) => {
+            const Icon = iconMap[cat.icon] ?? Building2;
+            const BadgeIcon = badgeIconMap[cat.badgeColor] ?? Shield;
 
-              return (
-                <div
-                  key={service.id}
-                  id={service.id}
-                  className="group bg-white rounded-2xl overflow-hidden shadow-sm border border-primary/10 hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
-                >
-                  <div>
-                    {/* Cover Image Container */}
-                    <div className="relative h-56 w-full overflow-hidden bg-primary/5">
-                      <Image
-                        src={service.image}
-                        alt={service.title}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+            return (
+              <ScrollReveal key={cat.slug} delay={i * 100} direction="up">
+                <div className="group relative flex flex-col overflow-hidden rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300">
+                  {/* Cover image */}
+                  <div className="relative h-48 overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={cat.coverImage}
+                      alt={cat.title}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                    {/* Fallback gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600 -z-10" />
 
-                      {/* Badge Overlay */}
-                      {service.badge && (
-                        <div className="absolute top-4 left-4">
-                          {service.badge.type === "urgent" && (
-                            <span className="inline-flex items-center gap-1.5 bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
-                              <Clock size={14} />
-                              {service.badge.text}
-                            </span>
-                          )}
-                          {service.badge.type === "warranty" && (
-                            <span className="inline-flex items-center gap-1.5 bg-amber-500 text-primary font-bold text-xs px-3 py-1.5 rounded-full shadow-lg">
-                              <ShieldCheck size={14} />
-                              {service.badge.text}
-                            </span>
-                          )}
-                          {service.badge.type === "quality" && (
-                            <span className="inline-flex items-center gap-1.5 bg-accent text-primary font-bold text-xs px-3 py-1.5 rounded-full shadow-lg">
-                              <Sparkles size={14} />
-                              {service.badge.text}
-                            </span>
-                          )}
-                          {service.badge.type === "popular" && (
-                            <span className="inline-flex items-center gap-1.5 bg-primary text-background font-bold text-xs px-3 py-1.5 rounded-full shadow-lg">
-                              <CheckCircle2 size={14} />
-                              {service.badge.text}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Icon overlay on bottom right */}
-                      <div className="absolute bottom-4 right-4 w-12 h-12 bg-white/95 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-md">
-                        <IconComponent className="text-primary group-hover:text-accent transition-colors" size={24} />
-                      </div>
-
-                      {/* Title on image */}
-                      <div className="absolute bottom-4 left-4 pr-16">
-                        <h3 className="text-2xl font-serif font-bold text-white tracking-tight drop-shadow-md">
-                          {service.title}
-                        </h3>
-                      </div>
+                    {/* Badge */}
+                    <div
+                      className={`absolute top-3 left-3 flex items-center gap-1 rounded-lg px-3 py-1 text-xs font-bold text-white shadow-md ${
+                        cat.badgeColor === "red"
+                          ? "bg-red-600"
+                          : cat.badgeColor === "blue"
+                          ? "bg-blue-700"
+                          : cat.badgeColor === "green"
+                          ? "bg-emerald-600"
+                          : cat.badgeColor === "purple"
+                          ? "bg-purple-700"
+                          : "bg-orange-500"
+                      }`}
+                    >
+                      <BadgeIcon className="h-3.5 w-3.5" />
+                      {cat.badge}
                     </div>
 
-                    {/* Card Content */}
-                    <div className="p-6 space-y-4">
-                      <p className="text-text-secondary text-sm leading-relaxed">
-                        {service.shortDescription}
-                      </p>
-
-                      {/* Sub-services list */}
-                      <div className="border-t border-primary/10 pt-4 space-y-2">
-                        <span className="text-xs font-bold uppercase tracking-wider text-primary">Prestations incluses :</span>
-                        <ul className="space-y-1.5">
-                          {service.items.map((item, idx) => (
-                            <li key={idx} className="flex items-start gap-2 text-xs text-text-secondary">
-                              <CheckCircle2 size={15} className="text-accent shrink-0 mt-0.5" />
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+                    {/* Icon overlay */}
+                    <div className="absolute bottom-3 right-3 flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm text-white">
+                      <Icon className="h-6 w-6" />
                     </div>
                   </div>
 
-                  {/* Card Actions */}
-                  <div className="p-6 pt-0 mt-auto">
+                  {/* Card body */}
+                  <div className="flex flex-1 flex-col p-6">
+                    <h3 className="text-xl font-bold text-gray-900">
+                      {cat.title}
+                    </h3>
+                    <p className="mt-2 text-sm text-gray-500 leading-relaxed">
+                      {cat.shortDescription}
+                    </p>
+
+                    {/* Service list */}
+                    <ul className="mt-4 flex-1 space-y-2">
+                      {cat.services.map((s) => (
+                        <li
+                          key={s.id}
+                          className="flex items-start gap-2 text-sm text-gray-700"
+                        >
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-yellow-500" />
+                          <span>
+                            <strong>{s.name}</strong>{" "}
+                            <span className="text-gray-400">—</span>{" "}
+                            <span className="text-gray-500">
+                              {s.description}
+                            </span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* CTA */}
                     <button
-                      onClick={() => handleOpenQuote(service.id)}
-                      className="w-full bg-primary hover:bg-primary/90 text-background py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm group-hover:shadow-md"
+                      onClick={() => openModal(cat)}
+                      className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gray-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-yellow-500 hover:text-gray-900 active:scale-95"
                     >
-                      <PhoneCall size={16} />
-                      Demander un devis express
+                      Demander un Devis
+                      <ArrowRight className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
-              );
-            })}
+              </ScrollReveal>
+            );
+          })}
+        </div>
+
+        {/* No results */}
+        {filtered.length === 0 && (
+          <div className="py-16 text-center text-gray-400">
+            <Search className="mx-auto h-12 w-12 mb-4" />
+            <p className="text-lg font-medium">Aucun service trouvé</p>
+            <p className="text-sm">Essayez un autre mot-clé ou catégorie.</p>
           </div>
         )}
-
-        {/* Modal render */}
-        <QuoteModal
-          isOpen={!!modalServiceId}
-          onClose={() => setModalServiceId(null)}
-          initialServiceId={modalServiceId || undefined}
-          services={serviceCategories}
-        />
       </div>
+
+      {/* Quote modal */}
+      {modalOpen && (
+        <QuoteModal
+          category={selectedCategory}
+          onClose={() => setModalOpen(false)}
+        />
+      )}
     </section>
   );
 }
