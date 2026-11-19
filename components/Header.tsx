@@ -73,7 +73,7 @@ export default function Header() {
             TANKECH
           </span>
           <span
-            className={`hidden sm:inline text-xs font-medium transition-colors duration-300 ${
+            className={`hidden lg:inline text-xs font-medium transition-colors duration-300 ${
               scrolled ? "text-gray-500" : "text-white/70"
             }`}
           >

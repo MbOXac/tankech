@@ -69,11 +69,10 @@ export default function ProjectsGallery() {
                           ? `${project.title} — Après`
                           : project.title
                       }
-                      className={`object-cover transition-all duration-500 ${
-                        hasBeforeAfter
-                          ? "group-hover:opacity-0"
-                          : "group-hover:scale-105"
-                      }`}
+                      className={`object-cover transition-all duration-500 ${hasBeforeAfter
+                        ? "group-hover:opacity-0"
+                        : "group-hover:scale-105"
+                        }`}
                     />
                     {/* Before image (on hover, when available) */}
                     {hasBeforeAfter && project.beforeImage && (

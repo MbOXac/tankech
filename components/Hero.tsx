@@ -19,7 +19,7 @@ export default function Hero() {
   }, []);
 
   return (
-    <section className="relative isolate flex min-h-screen items-center justify-center overflow-hidden bg-gray-900">
+    <section className="relative isolate flex min-h-screen items-center justify-center overflow-hidden bg-gray-900 pt-28 pb-12 md:pt-36 md:pb-16">
       {/* Background fallback image & gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-yellow-900/30 animate-gradient" />
       <FallbackImage
@@ -27,9 +27,8 @@ export default function Hero() {
         alt={`${siteConfig.name} — Construction et rénovation à Tanger`}
         sizes="100vw"
         priority
-        className={`object-cover transition-opacity duration-1000 ${
-          videoLoaded ? "opacity-0" : "opacity-100"
-        }`}
+        className={`object-cover transition-opacity duration-1000 ${videoLoaded ? "opacity-0" : "opacity-100"
+          }`}
       />
 
       {/* Optional background video when configured */}
@@ -41,21 +40,20 @@ export default function Hero() {
           muted
           playsInline
           onLoadedData={() => setVideoLoaded(true)}
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
-            videoLoaded ? "opacity-100" : "opacity-0"
-          }`}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${videoLoaded ? "opacity-100" : "opacity-0"
+            }`}
         >
           <source src={siteConfig.heroVideo} type="video/mp4" />
         </video>
       )}
 
-      {/* Dark overlay */}
-      <div className="absolute inset-0 bg-black/60" />
+      {/* Dark gradient overlay for contrast & clean header readability */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/50 to-black/75" />
 
       {/* Content */}
       <div className="relative z-10 mx-auto max-w-5xl px-4 text-center">
         {/* Badge */}
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-4 py-2 text-sm text-white/90">
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-5 py-2 text-sm font-medium text-white/95 shadow-lg">
           <span className="inline-block h-2 w-2 rounded-full bg-green-400 animate-pulse" />
           Basé à {siteConfig.address} — {siteConfig.emergencyLabel}
         </div>
@@ -93,7 +91,7 @@ export default function Hero() {
         </div>
 
         {/* Scroll indicator */}
-        <div className="mt-16 animate-bounce">
+        <div className="mt-12 animate-bounce">
           <ChevronDown className="mx-auto h-8 w-8 text-white/40" aria-hidden="true" />
         </div>
       </div>
