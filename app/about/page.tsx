@@ -1,16 +1,15 @@
 import { Metadata } from "next";
 import ScrollReveal from "@/components/ScrollReveal";
-import { siteConfig, whatsappLink } from "@/data/siteConfig";
+import FallbackImage from "@/components/FallbackImage";
+import { whatsappLink } from "@/data/siteConfig";
 import Link from "next/link";
 import {
   Shield,
-  Users,
   Target,
   Heart,
   Award,
   Clock,
   CheckCircle2,
-  ArrowRight,
 } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -66,8 +65,8 @@ export default function AboutPage() {
             livrer avec <span className="text-yellow-400">excellence</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-white/60">
-            Depuis notre création, TANKECH s'engage à offrir des services de
-            construction et rénovation d'exception à Tanger et dans tout le Nord
+            Depuis notre création, TANKECH s&apos;engage à offrir des services de
+            construction et rénovation d&apos;exception à Tanger et dans tout le Nord
             du Maroc.
           </p>
         </div>
@@ -78,14 +77,13 @@ export default function AboutPage() {
         <div className="mx-auto max-w-7xl px-4">
           <ScrollReveal>
             <div className="grid gap-12 lg:grid-cols-2 items-center">
-              <div className="relative h-72 md:h-96 rounded-2xl overflow-hidden bg-gradient-to-br from-yellow-800/30 to-gray-800/30">
-                {/* Replace with actual team photo */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <Users className="mx-auto h-16 w-16 text-yellow-500/60" />
-                    <p className="mt-4 text-white/40 text-sm">Photo d'équipe</p>
-                  </div>
-                </div>
+              <div className="relative isolate h-72 md:h-96 rounded-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-yellow-900/60 shadow-lg">
+                <FallbackImage
+                  src="/og-image.jpg"
+                  alt="Chantier de construction TANKECH à Tanger"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover"
+                />
               </div>
               <div>
                 <h2 className="text-3xl md:text-4xl font-black text-gray-900">
@@ -93,8 +91,8 @@ export default function AboutPage() {
                 </h2>
                 <div className="mt-6 space-y-4 text-gray-600 leading-relaxed">
                   <p>
-                    TANKECH est née de la conviction qu'il manquait à Tanger une
-                    entreprise capable d'offrir tous les corps de métier du
+                    TANKECH est née de la conviction qu&apos;il manquait à Tanger une
+                    entreprise capable d&apos;offrir tous les corps de métier du
                     bâtiment sous un même toit, avec un niveau de qualité et de
                     service digne des meilleures entreprises internationales.
                   </p>
@@ -105,9 +103,9 @@ export default function AboutPage() {
                     électriciens, peintres, menuisiers.
                   </p>
                   <p>
-                    Aujourd'hui, TANKECH est synonyme de fiabilité, de garantie
+                    Aujourd&apos;hui, TANKECH est synonyme de fiabilité, de garantie
                     décennale et de finition artisanale. Chaque projet — du plus
-                    petit dépannage à la construction complète d'une villa —
+                    petit dépannage à la construction complète d&apos;une villa —
                     bénéficie de la même attention et du même engagement.
                   </p>
                 </div>

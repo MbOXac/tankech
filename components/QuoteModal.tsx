@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ServiceCategory } from "@/data/servicesData";
 import { siteConfig, whatsappLink } from "@/data/siteConfig";
-import { X, Check, Phone, Send, Loader2 } from "lucide-react";
+import { X, Check, Phone, Send, Loader2, MessageCircle } from "lucide-react";
 
 interface Props {
   category: ServiceCategory | null;
@@ -22,7 +22,15 @@ export default function QuoteModal({ category, onClose }: Props) {
     message: "",
   });
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [submittedUrl, setSubmittedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
 
   const toggleService = (id: string) => {
     setSelectedServices((prev) =>
@@ -30,11 +38,10 @@ export default function QuoteModal({ category, onClose }: Props) {
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
-    // Build WhatsApp message as fallback
     const serviceNames =
       category?.services
         .filter((s) => selectedServices.includes(s.id))
@@ -44,27 +51,28 @@ export default function QuoteModal({ category, onClose }: Props) {
     const waMsg = `Bonjour TANKECH,
 
 Je souhaite demander un devis pour :
-📋 Catégorie : ${category?.title}
-🔧 Services : ${serviceNames}
+📋 Catégorie : ${category?.title ?? ""}
+🔧 Services : ${serviceNames || "Non précisé"}
 👤 Nom : ${form.name}
 📱 Téléphone : ${form.phone}
-📧 Email : ${form.email}
-🏙️ Ville : ${form.city}
-💬 Message : ${form.message}`;
+📧 Email : ${form.email || "Non renseigné"}
+🏙️ Ville : ${form.city || "Non renseignée"}
+💬 Message : ${form.message || "Aucun"}`;
 
-    // TODO: Replace with Firestore/API call
-    // For now, open WhatsApp with pre-filled message
-    window.open(whatsappLink(waMsg), "_blank");
+    const url = whatsappLink(waMsg);
+    window.open(url, "_blank", "noopener,noreferrer");
 
-    // Simulate submission delay
-    setTimeout(() => {
-      setSubmitting(false);
-      setSubmitted(true);
-    }, 1000);
+    setSubmitting(false);
+    setSubmittedUrl(url);
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="quote-modal-title"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -72,11 +80,14 @@ Je souhaite demander un devis pour :
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
+      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl modal-enter">
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4 rounded-t-2xl">
           <div>
-            <h3 className="text-lg font-bold text-gray-900">
+            <h3
+              id="quote-modal-title"
+              className="text-lg font-bold text-gray-900"
+            >
               Devis — {category?.title}
             </h3>
             <p className="text-sm text-gray-400">
@@ -84,53 +95,67 @@ Je souhaite demander un devis pour :
             </p>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Fermer"
             className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {submitted ? (
+        {submittedUrl ? (
           <div className="p-8 text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
               <Check className="h-8 w-8 text-green-600" />
             </div>
             <h4 className="text-xl font-bold text-gray-900">
-              Demande envoyée !
+              Demande prête sur WhatsApp !
             </h4>
             <p className="mt-2 text-gray-500">
-              Nous vous contacterons dans les plus brefs délais. Vous pouvez
-              aussi nous joindre directement sur WhatsApp.
+              WhatsApp s&apos;est ouvert avec votre message pré-rempli. Envoyez-le
+              pour recevoir votre devis sous 24h.
             </p>
-            <button
-              onClick={onClose}
-              className="mt-6 rounded-xl bg-gray-900 px-6 py-3 text-sm font-bold text-white hover:bg-gray-800 transition"
-            >
-              Fermer
-            </button>
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <a
+                href={submittedUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-6 py-3 text-sm font-bold text-white hover:bg-green-600 transition"
+              >
+                <MessageCircle className="h-4 w-4" /> Ouvrir WhatsApp
+              </a>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-xl bg-gray-900 px-6 py-3 text-sm font-bold text-white hover:bg-gray-800 transition"
+              >
+                Fermer
+              </button>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Select services */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
+              <p className="block text-sm font-semibold text-gray-700 mb-3">
                 Services souhaités
-              </label>
+              </p>
               <div className="grid grid-cols-2 gap-2">
                 {category?.services.map((s) => (
                   <button
                     key={s.id}
                     type="button"
+                    aria-pressed={selectedServices.includes(s.id)}
                     onClick={() => toggleService(s.id)}
-                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm font-medium transition ${
                       selectedServices.includes(s.id)
                         ? "border-yellow-400 bg-yellow-50 text-yellow-800"
                         : "border-gray-200 text-gray-600 hover:bg-gray-50"
                     }`}
                   >
                     <Check
-                      className={`h-4 w-4 ${
+                      className={`h-4 w-4 shrink-0 ${
                         selectedServices.includes(s.id)
                           ? "text-yellow-500"
                           : "text-gray-300"
@@ -144,13 +169,14 @@ Je souhaite demander un devis pour :
 
             {/* Contact info */}
             <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-700">
+              <p className="block text-sm font-semibold text-gray-700">
                 Vos coordonnées
-              </label>
+              </p>
               <input
                 required
                 type="text"
-                placeholder="Nom complet"
+                aria-label="Nom complet"
+                placeholder="Nom complet *"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-100"
@@ -158,13 +184,15 @@ Je souhaite demander un devis pour :
               <input
                 required
                 type="tel"
-                placeholder="Téléphone"
+                aria-label="Téléphone"
+                placeholder="Téléphone *"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-100"
               />
               <input
                 type="email"
+                aria-label="Email"
                 placeholder="Email (optionnel)"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -172,12 +200,14 @@ Je souhaite demander un devis pour :
               />
               <input
                 type="text"
+                aria-label="Ville"
                 placeholder="Ville"
                 value={form.city}
                 onChange={(e) => setForm({ ...form, city: e.target.value })}
                 className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-100"
               />
               <textarea
+                aria-label="Description du projet"
                 placeholder="Décrivez votre projet…"
                 rows={3}
                 value={form.message}
@@ -194,11 +224,11 @@ Je souhaite demander un devis pour :
             >
               {submitting ? (
                 <>
-                  <Loader2 className="h-5 w-5 animate-spin" /> Envoi en cours…
+                  <Loader2 className="h-5 w-5 animate-spin" /> Préparation…
                 </>
               ) : (
                 <>
-                  <Send className="h-5 w-5" /> Envoyer la Demande de Devis
+                  <Send className="h-5 w-5" /> Envoyer via WhatsApp
                 </>
               )}
             </button>

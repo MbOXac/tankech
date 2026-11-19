@@ -1,6 +1,6 @@
 "use client";
 
-import { siteConfig, whatsappLink } from "@/data/siteConfig";
+import { whatsappLink } from "@/data/siteConfig";
 import { MessageCircle } from "lucide-react";
 
 export default function WhatsAppButton() {

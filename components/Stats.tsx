@@ -19,19 +19,22 @@ function AnimatedNumber({ target, suffix }: { target: number; suffix: string }) 
     const el = ref.current;
     if (!el) return;
 
+    let timer: ReturnType<typeof setInterval> | null = null;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !started.current) {
           started.current = true;
+          observer.unobserve(el);
           const duration = 2000;
           const step = target / (duration / 16);
           let current = 0;
 
-          const timer = setInterval(() => {
+          timer = setInterval(() => {
             current += step;
             if (current >= target) {
               current = target;
-              clearInterval(timer);
+              if (timer) clearInterval(timer);
             }
             setCount(Math.floor(current));
           }, 16);
@@ -41,7 +44,10 @@ function AnimatedNumber({ target, suffix }: { target: number; suffix: string }) 
     );
 
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (timer) clearInterval(timer);
+    };
   }, [target]);
 
   return (

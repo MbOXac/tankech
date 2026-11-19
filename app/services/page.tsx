@@ -3,7 +3,7 @@ import ServicesGrid from "@/components/ServicesGrid";
 import ScrollReveal from "@/components/ScrollReveal";
 import { servicesData } from "@/data/servicesData";
 import FallbackImage from "@/components/FallbackImage";
-import { siteConfig, whatsappLink } from "@/data/siteConfig";
+import { whatsappLink } from "@/data/siteConfig";
 import {
   Building2,
   Home,
@@ -41,7 +41,7 @@ export default function ServicesPage() {
             Nos Services
           </span>
           <h1 className="text-4xl md:text-6xl font-black text-white">
-            6 domaines d'expertise, <br className="hidden md:block" />
+            6 domaines d&apos;expertise, <br className="hidden md:block" />
             <span className="text-yellow-400">un seul interlocuteur</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-white/60">
@@ -96,18 +96,18 @@ export default function ServicesPage() {
                 >
                   {/* Image side */}
                   <div
-                    className={`relative h-72 md:h-96 rounded-2xl overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 ${
+                    className={`relative isolate h-72 md:h-96 rounded-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-gray-600 ${
                       isEven ? "" : "lg:col-start-2"
                     }`}
                   >
                     <FallbackImage
-  src={cat.coverImage}
-  alt={cat.title}
-  className="h-full w-full object-cover"
-/>
-                    <div className="absolute inset-0 bg-gradient-to-br from-gray-800/40 to-gray-600/40 -z-10" />
+                      src={cat.coverImage}
+                      alt={cat.title}
+                      sizes="(max-width: 1024px) 100vw, 50vw"
+                      className="object-cover"
+                    />
                     {/* Badge floating */}
-                    <div className="absolute bottom-4 left-4 flex items-center gap-2 rounded-xl bg-white/90 backdrop-blur-sm px-4 py-2 text-sm font-bold text-gray-800 shadow">
+                    <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2 rounded-xl bg-white/90 backdrop-blur-sm px-4 py-2 text-sm font-bold text-gray-800 shadow">
                       <Icon className="h-5 w-5 text-yellow-500" />
                       {cat.title}
                     </div>

@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { servicesData, ServiceCategory } from "@/data/servicesData";
 import QuoteModal from "./QuoteModal";
 import ScrollReveal from "./ScrollReveal";
+import FallbackImage from "./FallbackImage";
 import {
   Building2,
   Home,
@@ -139,22 +140,16 @@ export default function ServicesGrid() {
               <ScrollReveal key={cat.slug} delay={i * 100} direction="up">
                 <div className="group relative flex flex-col overflow-hidden rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300">
                   {/* Cover image */}
-                  <div className="relative h-48 overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                  <div className="relative isolate h-48 overflow-hidden bg-gradient-to-br from-gray-800 to-gray-600">
+                    <FallbackImage
                       src={cat.coverImage}
                       alt={cat.title}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
                     />
-                    {/* Fallback gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-600 -z-10" />
 
                     {/* Badge */}
                     <div
-                      className={`absolute top-3 left-3 flex items-center gap-1 rounded-lg px-3 py-1 text-xs font-bold text-white shadow-md ${
+                      className={`relative z-10 inline-flex m-3 items-center gap-1 rounded-lg px-3 py-1 text-xs font-bold text-white shadow-md ${
                         cat.badgeColor === "red"
                           ? "bg-red-600"
                           : cat.badgeColor === "blue"
@@ -171,7 +166,7 @@ export default function ServicesGrid() {
                     </div>
 
                     {/* Icon overlay */}
-                    <div className="absolute bottom-3 right-3 flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm text-white">
+                    <div className="absolute bottom-3 right-3 z-10 flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm text-white">
                       <Icon className="h-6 w-6" />
                     </div>
                   </div>

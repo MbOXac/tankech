@@ -9,6 +9,7 @@ import { siteConfig } from "@/data/siteConfig";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteConfig.url),
   title: {
     default: `${siteConfig.name} — ${siteConfig.tagline}`,
     template: `%s | ${siteConfig.name}`,
@@ -54,10 +55,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr" className="scroll-smooth">
-      <head>
-        {/* Google Maps API for contact page */}
-        {/* <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_KEY" /> */}
-      </head>
       <body className={`${inter.className} bg-white text-gray-900 antialiased`}>
         <Header />
         <main>{children}</main>

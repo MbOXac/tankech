@@ -1,55 +1,23 @@
-"use client";
-
-import { useState } from "react";
+import type { Metadata } from "next";
 import { siteConfig, whatsappLink } from "@/data/siteConfig";
-import { servicesData } from "@/data/servicesData";
 import ScrollReveal from "@/components/ScrollReveal";
+import ContactForm from "@/components/ContactForm";
 import {
   Phone,
   Mail,
   MapPin,
   MessageCircle,
   Clock,
-  Send,
-  Loader2,
-  Check,
   AlertTriangle,
 } from "lucide-react";
 
+export const metadata: Metadata = {
+  title: "Contact & Devis",
+  description:
+    "Contactez TANKECH à Tanger pour un devis gratuit en construction, rénovation, plomberie, électricité ou peinture. Urgence 24/7.",
+};
+
 export default function ContactPage() {
-  const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    service: "",
-    city: "",
-    message: "",
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-
-    const waMsg = `Bonjour TANKECH,
-
-Je souhaite demander un devis :
-👤 Nom : ${form.name}
-📱 Téléphone : ${form.phone}
-📧 Email : ${form.email}
-🔧 Service : ${form.service}
-🏙️ Ville : ${form.city}
-💬 Message : ${form.message}`;
-
-    window.open(whatsappLink(waMsg), "_blank");
-
-    setTimeout(() => {
-      setSubmitting(false);
-      setSubmitted(true);
-    }, 1000);
-  };
-
   return (
     <>
       {/* Hero */}
@@ -179,7 +147,7 @@ Je souhaite demander un devis :
               <ScrollReveal delay={200}>
                 <div className="overflow-hidden rounded-2xl border border-gray-200 h-64 bg-gray-200">
                   <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d105575.35360022856!2d-5.85!3d35.77!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd0b8747e8e0e6e7%3A0x6e5e5e5e5e5e5e5e!2sTangier%2C%20Morocco!5e0!3m2!1sfr!2sma!4v1700000000000!5m2!1sfr!2sma"
+                    src="https://maps.google.com/maps?q=Tanger,Maroc&t=&z=13&ie=UTF8&iwloc=&output=embed"
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
@@ -196,116 +164,7 @@ Je souhaite demander un devis :
             <div className="lg:col-span-3">
               <ScrollReveal delay={100}>
                 <div className="rounded-2xl bg-white border border-gray-100 shadow-lg p-8 md:p-10">
-                  {submitted ? (
-                    <div className="py-12 text-center">
-                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                        <Check className="h-8 w-8 text-green-600" />
-                      </div>
-                      <h3 className="text-2xl font-bold text-gray-900">
-                        Demande envoyée !
-                      </h3>
-                      <p className="mt-2 text-gray-500">
-                        Nous vous recontactons sous 24h. En urgence, appelez
-                        directement.
-                      </p>
-                    </div>
-                  ) : (
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">
-                        Demander un Devis Gratuit
-                      </h3>
-
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <input
-                          required
-                          type="text"
-                          placeholder="Nom complet *"
-                          value={form.name}
-                          onChange={(e) =>
-                            setForm({ ...form, name: e.target.value })
-                          }
-                          className="rounded-lg border border-gray-200 px-4 py-3 text-sm focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-100"
-                        />
-                        <input
-                          required
-                          type="tel"
-                          placeholder="Téléphone *"
-                          value={form.phone}
-                          onChange={(e) =>
-                            setForm({ ...form, phone: e.target.value })
-                          }
-                          className="rounded-lg border border-gray-200 px-4 py-3 text-sm focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-100"
-                        />
-                      </div>
-
-                      <input
-                        type="email"
-                        placeholder="Email (optionnel)"
-                        value={form.email}
-                        onChange={(e) =>
-                          setForm({ ...form, email: e.target.value })
-                        }
-                        className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-100"
-                      />
-
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <select
-                          value={form.service}
-                          onChange={(e) =>
-                            setForm({ ...form, service: e.target.value })
-                          }
-                          className="rounded-lg border border-gray-200 px-4 py-3 text-sm focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-100 text-gray-600"
-                        >
-                          <option value="">Sélectionnez un service</option>
-                          {servicesData.map((s) => (
-                            <option key={s.slug} value={s.title}>
-                              {s.title}
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          type="text"
-                          placeholder="Ville"
-                          value={form.city}
-                          onChange={(e) =>
-                            setForm({ ...form, city: e.target.value })
-                          }
-                          className="rounded-lg border border-gray-200 px-4 py-3 text-sm focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-100"
-                        />
-                      </div>
-
-                      <textarea
-                        placeholder="Décrivez votre projet…"
-                        rows={5}
-                        value={form.message}
-                        onChange={(e) =>
-                          setForm({ ...form, message: e.target.value })
-                        }
-                        className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-100 resize-none"
-                      />
-
-                      <button
-                        type="submit"
-                        disabled={submitting}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-500 py-4 text-base font-bold text-gray-900 shadow-lg transition hover:bg-yellow-400 hover:shadow-xl active:scale-95 disabled:opacity-50"
-                      >
-                        {submitting ? (
-                          <>
-                            <Loader2 className="h-5 w-5 animate-spin" />{" "}
-                            Envoi…
-                          </>
-                        ) : (
-                          <>
-                            <Send className="h-5 w-5" /> Envoyer la Demande
-                          </>
-                        )}
-                      </button>
-
-                      <p className="text-center text-xs text-gray-400">
-                        Devis gratuit et sans engagement — réponse sous 24h
-                      </p>
-                    </form>
-                  )}
+                  <ContactForm />
                 </div>
               </ScrollReveal>
             </div>

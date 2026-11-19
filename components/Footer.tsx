@@ -92,6 +92,7 @@ export default function Footer() {
                   href={siteConfig.instagram}
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label="Instagram"
                   className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/5 text-white/50 hover:bg-yellow-500 hover:text-gray-900 transition"
                 >
                   <InstagramIcon className="h-5 w-5" />
@@ -102,6 +103,7 @@ export default function Footer() {
                   href={siteConfig.facebook}
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label="Facebook"
                   className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/5 text-white/50 hover:bg-yellow-500 hover:text-gray-900 transition"
                 >
                   <FacebookIcon className="h-5 w-5" />
@@ -112,6 +114,7 @@ export default function Footer() {
                   href={siteConfig.linkedin}
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label="LinkedIn"
                   className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/5 text-white/50 hover:bg-yellow-500 hover:text-gray-900 transition"
                 >
                   <LinkedinIcon className="h-5 w-5" />
@@ -205,8 +208,10 @@ export default function Footer() {
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-6 sm:flex-row">
           <p className="text-xs text-white/30">
-            © {new Date().getFullYear()} TANKECH. Tous droits réservés.{" "}
-            {siteConfig.rc} — ICE : {siteConfig.ice}
+            © {new Date().getFullYear()} TANKECH. Tous droits réservés.
+            {siteConfig.rc && ` ${siteConfig.rc}`}
+            {siteConfig.rc && siteConfig.ice && " —"}
+            {siteConfig.ice && ` ICE : ${siteConfig.ice}`}
           </p>
           <button
             onClick={scrollToTop}

@@ -59,6 +59,8 @@ export default function FAQ() {
                 }`}
               >
                 <button
+                  type="button"
+                  aria-expanded={open === i}
                   onClick={() => setOpen(open === i ? null : i)}
                   className="flex w-full items-center justify-between px-6 py-5 text-left"
                 >

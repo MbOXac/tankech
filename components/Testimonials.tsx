@@ -69,13 +69,17 @@ export default function Testimonials() {
                 {/* Nav arrows */}
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={prev}
+                    aria-label="Témoignage précédent"
                     className="rounded-lg border border-white/10 p-2 text-white/50 hover:bg-white/10 hover:text-white transition"
                   >
                     <ChevronLeft className="h-5 w-5" />
                   </button>
                   <button
+                    type="button"
                     onClick={next}
+                    aria-label="Témoignage suivant"
                     className="rounded-lg border border-white/10 p-2 text-white/50 hover:bg-white/10 hover:text-white transition"
                   >
                     <ChevronRight className="h-5 w-5" />
@@ -88,7 +92,10 @@ export default function Testimonials() {
                 {testimonialsData.map((_, i) => (
                   <button
                     key={i}
+                    type="button"
                     onClick={() => setIndex(i)}
+                    aria-label={`Afficher le témoignage ${i + 1}`}
+                    aria-current={i === index ? "true" : undefined}
                     className={`h-2 rounded-full transition-all ${
                       i === index
                         ? "w-8 bg-yellow-400"

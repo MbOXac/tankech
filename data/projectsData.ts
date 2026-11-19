@@ -9,11 +9,13 @@ export interface Project {
   categorySlug: string;
   location: string;
   description: string;
-  beforeImage: string;
+  beforeImage?: string;
   afterImage: string;
   featured: boolean;
 }
 
+// Note: Remplacez les images par vos propres photos avant/après dans /public/projects/
+// dès qu'elles seront disponibles.
 export const projectsData: Project[] = [
   {
     id: "villa-malabata",
@@ -23,8 +25,7 @@ export const projectsData: Project[] = [
     location: "Tanger, Malabata",
     description:
       "Construction complète d'une villa de 350 m² avec piscine, fondations profondes et finitions haut de gamme.",
-    beforeImage: "/projects/villa-malabata-avant.jpg",
-    afterImage: "/projects/villa-malabata-apres.jpg",
+    afterImage: "/og-image.jpg",
     featured: true,
   },
   {
@@ -35,32 +36,29 @@ export const projectsData: Project[] = [
     location: "Tanger, Centre-Ville",
     description:
       "Rénovation totale d'un appartement de 120 m² : cuisine ouverte, salle de bain italienne, open space lumineux.",
-    beforeImage: "/projects/appart-centre-avant.jpg",
-    afterImage: "/projects/appart-centre-apres.jpg",
+    afterImage: "/services/renovation.jpg",
     featured: true,
   },
   {
     id: "riad-medina",
     title: "Restauration Riad Médina",
-    category: "Rénovation",
-    categorySlug: "renovation",
+    category: "Peinture & Finitions",
+    categorySlug: "peinture",
     location: "Tanger, Médina",
     description:
       "Restauration authentique d'un riad historique avec tadelakt, zellige et bois de cèdre.",
-    beforeImage: "/projects/riad-medina-avant.jpg",
-    afterImage: "/projects/riad-medina-apres.jpg",
+    afterImage: "/services/peinture.jpg",
     featured: true,
   },
   {
     id: "bureau-guerrab",
     title: "Aménagement Bureaux Guerrab",
-    category: "Rénovation",
-    categorySlug: "renovation",
+    category: "Électricité",
+    categorySlug: "electricite",
     location: "Tanger, Guerrab",
     description:
       "Transformation d'un local commercial en espace bureaux moderne avec climatisation et domotique.",
-    beforeImage: "/projects/bureau-guerrab-avant.jpg",
-    afterImage: "/projects/bureau-guerrab-apres.jpg",
+    afterImage: "/services/electricite.jpg",
     featured: false,
   },
   {
@@ -71,8 +69,7 @@ export const projectsData: Project[] = [
     location: "Tanger, Iondi",
     description:
       "Maison R+2 de 250 m² avec terrasse panoramique, étanchéité et finitions soignées.",
-    beforeImage: "/projects/maison-iondi-avant.jpg",
-    afterImage: "/projects/maison-iondi-apres.jpg",
+    afterImage: "/services/gros-oeuvre.jpg",
     featured: false,
   },
   {
@@ -83,8 +80,7 @@ export const projectsData: Project[] = [
     location: "Tanger, Charf",
     description:
       "Intervention urgente pour fuite importante — recherche de fuite, réparation et remise aux normes.",
-    beforeImage: "/projects/plomb-charf-avant.jpg",
-    afterImage: "/projects/plomb-charf-apres.jpg",
+    afterImage: "/services/plomberie.jpg",
     featured: false,
   },
 ];

@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { siteConfig, whatsappLink } from "@/data/siteConfig";
-import { Phone, ChevronDown, Play } from "lucide-react";
+import FallbackImage from "./FallbackImage";
+import { Phone, ChevronDown } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
 export default function Hero() {
@@ -9,38 +11,46 @@ export default function Hero() {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (videoRef.current) {
+    if (siteConfig.heroVideo && videoRef.current) {
       videoRef.current.play().catch(() => {
-        // autoplay blocked — user must interact first
+        // autoplay blocked — fallback image/gradient remains visible
       });
     }
   }, []);
 
   return (
-    <section className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gray-900">
-      {/* Background video */}
-      <video
-        ref={videoRef}
-        autoPlay
-        loop
-        muted
-        playsInline
-        onLoadedData={() => setVideoLoaded(true)}
-        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
-          videoLoaded ? "opacity-100" : "opacity-0"
+    <section className="relative isolate flex min-h-screen items-center justify-center overflow-hidden bg-gray-900">
+      {/* Background fallback image & gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-yellow-900/30 animate-gradient" />
+      <FallbackImage
+        src={siteConfig.ogImage}
+        alt={`${siteConfig.name} — Construction et rénovation à Tanger`}
+        sizes="100vw"
+        priority
+        className={`object-cover transition-opacity duration-1000 ${
+          videoLoaded ? "opacity-0" : "opacity-100"
         }`}
-      >
-        {/* Place your construction site video in /public/hero-video.mp4 */}
-        <source src="/hero-video.mp4" type="video/mp4" />
-      </video>
+      />
 
-      {/* Fallback gradient when no video */}
-      {!videoLoaded && (
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-yellow-900/30" />
+      {/* Optional background video when configured */}
+      {siteConfig.heroVideo && (
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          onLoadedData={() => setVideoLoaded(true)}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
+            videoLoaded ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          <source src={siteConfig.heroVideo} type="video/mp4" />
+        </video>
       )}
 
       {/* Dark overlay */}
-      <div className="absolute inset-0 bg-black/55" />
+      <div className="absolute inset-0 bg-black/60" />
 
       {/* Content */}
       <div className="relative z-10 mx-auto max-w-5xl px-4 text-center">
@@ -66,12 +76,12 @@ export default function Hero() {
 
         {/* CTAs */}
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <a
+          <Link
             href="/contact"
             className="w-full sm:w-auto rounded-xl bg-yellow-500 px-8 py-4 text-lg font-bold text-gray-900 shadow-lg transition hover:bg-yellow-400 hover:shadow-xl active:scale-95"
           >
             Demander un Devis Gratuit
-          </a>
+          </Link>
           <a
             href={whatsappLink()}
             target="_blank"
@@ -84,7 +94,7 @@ export default function Hero() {
 
         {/* Scroll indicator */}
         <div className="mt-16 animate-bounce">
-          <ChevronDown className="mx-auto h-8 w-8 text-white/40" />
+          <ChevronDown className="mx-auto h-8 w-8 text-white/40" aria-hidden="true" />
         </div>
       </div>
     </section>
