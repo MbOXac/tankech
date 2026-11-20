@@ -219,6 +219,11 @@ export const servicesData: ServiceCategory[] = [
         name: "Dépannage Électrique",
         description: "Intervention rapide pour pannes et urgences.",
       },
+      {
+        id: "groupes-electrogenes",
+        name: "Groupes Électrogènes & Onduleurs",
+        description: "Installation et maintenance de groupes électrogènes et onduleurs.",
+      },
     ],
   },
   {

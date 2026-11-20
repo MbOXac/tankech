@@ -7,9 +7,17 @@ import Testimonials from "@/components/Testimonials";
 import FAQ from "@/components/FAQ";
 import ScrollReveal from "@/components/ScrollReveal";
 import { siteConfig, whatsappLink } from "@/data/siteConfig";
+import { getPublicProjects, getPublicTestimonials } from "@/lib/content";
 import { Phone } from "lucide-react";
 
-export default function HomePage() {
+export const revalidate = 60;
+
+export default async function HomePage() {
+  const [projects, testimonials] = await Promise.all([
+    getPublicProjects(),
+    getPublicTestimonials(),
+  ]);
+
   return (
     <>
       {/* Hero — Full-screen video */}
@@ -25,10 +33,10 @@ export default function HomePage() {
       <WhyUs />
 
       {/* Projects — Before/After gallery */}
-      <ProjectsGallery />
+      <ProjectsGallery projects={projects} />
 
       {/* Testimonials — Client reviews */}
-      <Testimonials />
+      <Testimonials testimonials={testimonials} />
 
       {/* FAQ */}
       <FAQ />

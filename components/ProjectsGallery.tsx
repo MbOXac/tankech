@@ -7,7 +7,13 @@ import ScrollReveal from "./ScrollReveal";
 import FallbackImage from "./FallbackImage";
 import { MapPin, ArrowRightLeft, Eye, X } from "lucide-react";
 
-export default function ProjectsGallery() {
+interface ProjectsGalleryProps {
+  projects?: Project[];
+}
+
+export default function ProjectsGallery({
+  projects = projectsData,
+}: ProjectsGalleryProps) {
   const [selected, setSelected] = useState<Project | null>(null);
 
   useEffect(() => {
@@ -40,7 +46,7 @@ export default function ProjectsGallery() {
 
         {/* Grid */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {projectsData.map((project, i) => {
+          {projects.map((project, i) => {
             const hasBeforeAfter = Boolean(
               project.beforeImage && project.beforeImage !== project.afterImage
             );

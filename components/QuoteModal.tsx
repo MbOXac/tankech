@@ -3,11 +3,25 @@
 import { useState, useEffect } from "react";
 import { ServiceCategory } from "@/data/servicesData";
 import { siteConfig, whatsappLink } from "@/data/siteConfig";
-import { X, Check, Phone, Send, Loader2, MessageCircle } from "lucide-react";
+import {
+  X,
+  Check,
+  Phone,
+  Send,
+  Loader2,
+  MessageCircle,
+  AlertCircle,
+} from "lucide-react";
 
 interface Props {
   category: ServiceCategory | null;
   onClose: () => void;
+}
+
+interface SubmitResult {
+  waUrl: string;
+  savedToDb: boolean;
+  emailSent: boolean;
 }
 
 export default function QuoteModal({ category, onClose }: Props) {
@@ -20,9 +34,11 @@ export default function QuoteModal({ category, onClose }: Props) {
     email: "",
     city: "",
     message: "",
+    website: "", // honeypot
   });
   const [submitting, setSubmitting] = useState(false);
-  const [submittedUrl, setSubmittedUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<SubmitResult | null>(null);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -38,32 +54,78 @@ export default function QuoteModal({ category, onClose }: Props) {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setError(null);
 
     const serviceNames =
       category?.services
         .filter((s) => selectedServices.includes(s.id))
-        .map((s) => s.name)
-        .join(", ") ?? "";
+        .map((s) => s.name) ?? [];
 
     const waMsg = `Bonjour TANKECH,
 
 Je souhaite demander un devis pour :
 📋 Catégorie : ${category?.title ?? ""}
-🔧 Services : ${serviceNames || "Non précisé"}
+🔧 Services : ${serviceNames.join(", ") || "Non précisé"}
 👤 Nom : ${form.name}
 📱 Téléphone : ${form.phone}
 📧 Email : ${form.email || "Non renseigné"}
 🏙️ Ville : ${form.city || "Non renseignée"}
 💬 Message : ${form.message || "Aucun"}`;
 
-    const url = whatsappLink(waMsg);
-    window.open(url, "_blank", "noopener,noreferrer");
+    const waUrl = whatsappLink(waMsg);
 
-    setSubmitting(false);
-    setSubmittedUrl(url);
+    try {
+      const res = await fetch("/api/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          phone: form.phone,
+          email: form.email,
+          category: category?.title ?? "",
+          services: serviceNames,
+          city: form.city,
+          message: form.message,
+          source: "quote_modal",
+          website: form.website,
+        }),
+      });
+
+      const data = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        savedToDb?: boolean;
+        emailSent?: boolean;
+      };
+
+      if (!res.ok || !data.ok) {
+        setError(
+          data.error ||
+            "Une erreur est survenue. Vous pouvez nous contacter via WhatsApp."
+        );
+        setSubmitting(false);
+        return;
+      }
+
+      if (!data.savedToDb && !data.emailSent) {
+        window.open(waUrl, "_blank", "noopener,noreferrer");
+      }
+
+      setResult({
+        waUrl,
+        savedToDb: Boolean(data.savedToDb),
+        emailSent: Boolean(data.emailSent),
+      });
+    } catch {
+      setError(
+        "Impossible de joindre le serveur. Veuillez réessayer ou utiliser WhatsApp."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -104,26 +166,32 @@ Je souhaite demander un devis pour :
           </button>
         </div>
 
-        {submittedUrl ? (
+        {result ? (
           <div className="p-8 text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
               <Check className="h-8 w-8 text-green-600" />
             </div>
             <h4 className="text-xl font-bold text-gray-900">
-              Demande prête sur WhatsApp !
+              {result.savedToDb || result.emailSent
+                ? "Demande envoyée !"
+                : "Demande prête sur WhatsApp !"}
             </h4>
             <p className="mt-2 text-gray-500">
-              WhatsApp s&apos;est ouvert avec votre message pré-rempli. Envoyez-le
-              pour recevoir votre devis sous 24h.
+              {result.savedToDb || result.emailSent
+                ? "Votre demande de devis a bien été enregistrée. Nous vous recontactons sous 24h."
+                : "WhatsApp s'est ouvert avec votre message pré-rempli. Envoyez-le pour recevoir votre devis sous 24h."}
             </p>
             <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
               <a
-                href={submittedUrl}
+                href={result.waUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-6 py-3 text-sm font-bold text-white hover:bg-green-600 transition"
               >
-                <MessageCircle className="h-4 w-4" /> Ouvrir WhatsApp
+                <MessageCircle className="h-4 w-4" />{" "}
+                {result.savedToDb || result.emailSent
+                  ? "Suivre sur WhatsApp"
+                  : "Ouvrir WhatsApp"}
               </a>
               <button
                 type="button"
@@ -136,6 +204,27 @@ Je souhaite demander un devis pour :
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {error && (
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+              >
+                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Honeypot */}
+            <div className="hidden" aria-hidden="true">
+              <input
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={form.website}
+                onChange={(e) => setForm({ ...form, website: e.target.value })}
+              />
+            </div>
+
             {/* Select services */}
             <div>
               <p className="block text-sm font-semibold text-gray-700 mb-3">
@@ -224,11 +313,11 @@ Je souhaite demander un devis pour :
             >
               {submitting ? (
                 <>
-                  <Loader2 className="h-5 w-5 animate-spin" /> Préparation…
+                  <Loader2 className="h-5 w-5 animate-spin" /> Envoi en cours…
                 </>
               ) : (
                 <>
-                  <Send className="h-5 w-5" /> Envoyer via WhatsApp
+                  <Send className="h-5 w-5" /> Envoyer la Demande de Devis
                 </>
               )}
             </button>

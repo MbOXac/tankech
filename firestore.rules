@@ -1,0 +1,303 @@
+rules_version = '2';
+
+// ===============================================================
+// TANKECH — Cloud Firestore Security Rules
+// ===============================================================
+//
+// Assumed Data Model
+// ===============================================================
+//
+// This security rules file assumes the following data structures:
+//
+// 1. Collection: quotes
+//    Document ID: auto-generated quoteId
+//    Access: Private (PII). Created by Next.js server API routes via
+//            Firebase Admin SDK (bypasses rules) or managed directly
+//            by authenticated admins (request.auth.token.admin == true).
+//            Zero public or non-admin read/write access.
+//    Fields:
+//      - name:      string (required, 2..120 chars) - Client full name
+//      - phone:     string (required, 6..30 chars)  - Client phone number
+//      - email:     string (required, 0..150 chars; empty or valid email)
+//      - category:  string (required, 0..100 chars) - Service category
+//      - services:  list<string> (required, <= 20 items, each 1..120 chars)
+//      - city:      string (required, 0..100 chars) - Client city
+//      - message:   string (required, 0..2000 chars) - Project description
+//      - status:    string enum (required: 'nouveau' | 'contacte' |
+//                   'devis_envoye' | 'termine' | 'archive')
+//      - notes:     string (required, 0..2000 chars) - Internal admin notes
+//      - source:    string enum (required, immutable: 'contact_page' |
+//                   'quote_modal')
+//      - createdAt: timestamp (required, immutable)
+//      - updatedAt: timestamp (required, >= createdAt)
+//
+// 2. Collection: projects
+//    Document ID: slug or auto-generated projectId
+//    Access: Public read (portfolio showcase, no PII). Writes strictly
+//            restricted to authenticated admins.
+//    Fields:
+//      - title:        string (required, 1..150 chars)
+//      - category:     string (required, 1..100 chars)
+//      - categorySlug: string (required, 1..80 chars, lowercase slug)
+//      - location:     string (required, 1..150 chars)
+//      - description:  string (required, 0..2000 chars)
+//      - afterImage:   string (required, 1..1000 chars, https:// URL or safe /path)
+//      - beforeImage:  string (optional, empty or valid image URL, <= 1000 chars)
+//      - featured:     bool (required)
+//      - createdAt:    timestamp (required, immutable)
+//
+// 3. Collection: testimonials
+//    Document ID: auto-generated testimonialId
+//    Access: Public read (curated client reviews, no private PII).
+//            Writes strictly restricted to authenticated admins.
+//    Fields:
+//      - name:      string (required, 1..100 chars)
+//      - role:      string (required, 1..100 chars)
+//      - location:  string (required, 1..120 chars)
+//      - text:      string (required, 1..1500 chars)
+//      - rating:    int (required, 1..5)
+//      - service:   string (required, 1..100 chars)
+//      - avatar:    string (optional, empty or valid image URL, <= 1000 chars)
+//      - createdAt: timestamp (required, immutable)
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Check if the caller is authenticated via Firebase Auth
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if the caller holds the trusted Firebase Auth admin custom claim.
+    // Authority is derived exclusively from the signed JWT token, never from
+    // client-supplied document fields.
+    function isAdmin() {
+      return isAuthenticated() &&
+        'admin' in request.auth.token &&
+        request.auth.token.admin == true;
+    }
+
+    // Standard ownership helpers (retained for future user-scoped collections)
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) ||
+        request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('uid' in request.resource.data) ||
+        request.resource.data.uid == resource.data.uid;
+    }
+
+    // Schema helpers
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // Type & length helpers
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    // Email format validation (allows empty string for optional email fields)
+    function isValidOptionalEmail(email) {
+      return email is string &&
+        email.size() <= 150 &&
+        (email.size() == 0 ||
+          email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"));
+    }
+
+    // URL/path validation for portfolio & avatar images:
+    // Accepts HTTPS URLs or safe root-relative paths (e.g. /services/gros-oeuvre.jpg),
+    // blocking javascript:/data: schemes, protocol-relative URLs (//), and traversal (..).
+    function isValidImageUrl(url) {
+      return url is string &&
+        url.size() >= 1 &&
+        url.size() <= 1000 &&
+        !url.matches(".*\\.\\..*") &&
+        (url.matches("^https://.*") ||
+          (!url.matches("^//.*") && url.matches("^/[a-zA-Z0-9._/-]+$")));
+    }
+
+    function isValidOptionalImageUrl(data, field) {
+      return !(field in data) ||
+        (data[field] is string &&
+          (data[field].size() == 0 || isValidImageUrl(data[field])));
+    }
+
+    // Lowercase hyphenated slug validation (e.g. 'gros-oeuvre', 'peinture')
+    function isValidSlug(slug) {
+      return isValidString(slug, 1, 80) &&
+        slug.matches("^[a-z0-9]+(-[a-z0-9]+)*$");
+    }
+
+    // Temporal accuracy check: timestamp must be within the last 5 minutes and not in the future
+    function isRecent(ts) {
+      return ts is timestamp &&
+        ts > request.time - duration.value(5, 'm') &&
+        ts <= request.time;
+    }
+
+    // Deep array inspection for quotes.services (max 20 non-empty strings, each <= 120 chars)
+    function isValidServiceItem(list, idx) {
+      return idx >= list.size() ||
+        (list[idx] is string && list[idx].size() >= 1 && list[idx].size() <= 120);
+    }
+
+    function isValidServicesList(list) {
+      return list is list &&
+        list.size() <= 20 &&
+        isValidServiceItem(list, 0) && isValidServiceItem(list, 1) &&
+        isValidServiceItem(list, 2) && isValidServiceItem(list, 3) &&
+        isValidServiceItem(list, 4) && isValidServiceItem(list, 5) &&
+        isValidServiceItem(list, 6) && isValidServiceItem(list, 7) &&
+        isValidServiceItem(list, 8) && isValidServiceItem(list, 9) &&
+        isValidServiceItem(list, 10) && isValidServiceItem(list, 11) &&
+        isValidServiceItem(list, 12) && isValidServiceItem(list, 13) &&
+        isValidServiceItem(list, 14) && isValidServiceItem(list, 15) &&
+        isValidServiceItem(list, 16) && isValidServiceItem(list, 17) &&
+        isValidServiceItem(list, 18) && isValidServiceItem(list, 19);
+    }
+
+    // ===============================================================
+    // Domain Validators (invoked on BOTH create and update)
+    // ===============================================================
+
+    function isValidQuote(data) {
+      let requiredFields = [
+        'name', 'phone', 'email', 'category', 'services',
+        'city', 'message', 'status', 'notes', 'source',
+        'createdAt', 'updatedAt'
+      ];
+      return hasRequiredFields(requiredFields) &&
+        hasOnlyAllowedFields(requiredFields) &&
+        isValidString(data.name, 2, 120) &&
+        isValidString(data.phone, 6, 30) &&
+        isValidOptionalEmail(data.email) &&
+        isValidString(data.category, 0, 100) &&
+        isValidServicesList(data.services) &&
+        isValidString(data.city, 0, 100) &&
+        isValidString(data.message, 0, 2000) &&
+        data.status in ['nouveau', 'contacte', 'devis_envoye', 'termine', 'archive'] &&
+        isValidString(data.notes, 0, 2000) &&
+        data.source in ['contact_page', 'quote_modal'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp &&
+        data.updatedAt >= data.createdAt;
+    }
+
+    function isValidProject(data) {
+      let requiredFields = [
+        'title', 'category', 'categorySlug', 'location',
+        'description', 'afterImage', 'featured', 'createdAt'
+      ];
+      let allowedFields = [
+        'title', 'category', 'categorySlug', 'location',
+        'description', 'afterImage', 'beforeImage', 'featured', 'createdAt'
+      ];
+      return hasRequiredFields(requiredFields) &&
+        hasOnlyAllowedFields(allowedFields) &&
+        isValidString(data.title, 1, 150) &&
+        isValidString(data.category, 1, 100) &&
+        isValidSlug(data.categorySlug) &&
+        isValidString(data.location, 1, 150) &&
+        isValidString(data.description, 0, 2000) &&
+        isValidImageUrl(data.afterImage) &&
+        isValidOptionalImageUrl(data, 'beforeImage') &&
+        data.featured is bool &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidTestimonial(data) {
+      let requiredFields = [
+        'name', 'role', 'location', 'text',
+        'rating', 'service', 'createdAt'
+      ];
+      let allowedFields = [
+        'name', 'role', 'location', 'text',
+        'rating', 'service', 'avatar', 'createdAt'
+      ];
+      return hasRequiredFields(requiredFields) &&
+        hasOnlyAllowedFields(allowedFields) &&
+        isValidString(data.name, 1, 100) &&
+        isValidString(data.role, 1, 100) &&
+        isValidString(data.location, 1, 120) &&
+        isValidString(data.text, 1, 1500) &&
+        data.rating is int &&
+        data.rating >= 1 &&
+        data.rating <= 5 &&
+        isValidString(data.service, 1, 100) &&
+        isValidOptionalImageUrl(data, 'avatar') &&
+        data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    // 1. Quotes / Leads (PRIVATE — contains PII)
+    // Public clients have ZERO access. Quote submissions happen via Next.js
+    // server API routes using firebase-admin; admin dashboard access requires
+    // an authenticated user with the admin custom claim.
+    match /quotes/{quoteId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() &&
+        isValidQuote(request.resource.data) &&
+        isRecent(request.resource.data.createdAt) &&
+        isRecent(request.resource.data.updatedAt);
+      allow update: if isAdmin() &&
+        isValidQuote(request.resource.data) &&
+        areImmutableFieldsUnchanged(['createdAt', 'source']) &&
+        isRecent(request.resource.data.updatedAt);
+      allow delete: if isAdmin();
+    }
+
+    // 2. Projects / Portfolio (PUBLIC READ, ADMIN-ONLY WRITE)
+    match /projects/{projectId} {
+      allow read: if true;
+      allow create: if isAdmin() &&
+        isValidProject(request.resource.data) &&
+        isRecent(request.resource.data.createdAt);
+      allow update: if isAdmin() &&
+        isValidProject(request.resource.data) &&
+        areImmutableFieldsUnchanged(['createdAt']);
+      allow delete: if isAdmin();
+    }
+
+    // 3. Testimonials / Reviews (PUBLIC READ, ADMIN-ONLY WRITE)
+    match /testimonials/{testimonialId} {
+      allow read: if true;
+      allow create: if isAdmin() &&
+        isValidTestimonial(request.resource.data) &&
+        isRecent(request.resource.data.createdAt);
+      allow update: if isAdmin() &&
+        isValidTestimonial(request.resource.data) &&
+        areImmutableFieldsUnchanged(['createdAt']);
+      allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // Default Deny — block all other collections and subcollections
+    // ===============================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

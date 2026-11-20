@@ -1,18 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { testimonialsData } from "@/data/testimonialsData";
+import { testimonialsData, type Testimonial } from "@/data/testimonialsData";
 import ScrollReveal from "./ScrollReveal";
 import { Star, ChevronLeft, ChevronRight, Quote } from "lucide-react";
 
-export default function Testimonials() {
+interface TestimonialsProps {
+  testimonials?: Testimonial[];
+}
+
+export default function Testimonials({
+  testimonials = testimonialsData,
+}: TestimonialsProps) {
   const [index, setIndex] = useState(0);
-  const t = testimonialsData[index];
+  const items = testimonials.length > 0 ? testimonials : testimonialsData;
+  const safeIndex = index < items.length ? index : 0;
+  const t = items[safeIndex];
 
   const prev = () =>
-    setIndex((i) => (i === 0 ? testimonialsData.length - 1 : i - 1));
+    setIndex((i) => (i === 0 ? items.length - 1 : i - 1));
   const next = () =>
-    setIndex((i) => (i === testimonialsData.length - 1 ? 0 : i + 1));
+    setIndex((i) => (i >= items.length - 1 ? 0 : i + 1));
 
   return (
     <section className="py-20 md:py-28 bg-gray-900 text-white overflow-hidden">
@@ -89,15 +97,15 @@ export default function Testimonials() {
 
               {/* Dots */}
               <div className="mt-6 flex justify-center gap-2">
-                {testimonialsData.map((_, i) => (
+                {items.map((_, i) => (
                   <button
                     key={i}
                     type="button"
                     onClick={() => setIndex(i)}
                     aria-label={`Afficher le témoignage ${i + 1}`}
-                    aria-current={i === index ? "true" : undefined}
+                    aria-current={i === safeIndex ? "true" : undefined}
                     className={`h-2 rounded-full transition-all ${
-                      i === index
+                      i === safeIndex
                         ? "w-8 bg-yellow-400"
                         : "w-2 bg-white/20 hover:bg-white/40"
                     }`}
