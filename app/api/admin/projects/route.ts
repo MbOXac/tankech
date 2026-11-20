@@ -52,6 +52,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
+function sanitizeImageUrl(raw: string | undefined, fallback: string): string {
+  const url = (raw ?? "").trim().slice(0, 500);
+  if (!url) return fallback;
+  if (url.includes("..")) return fallback;
+  if (url.startsWith("https://")) return url;
+  if (!url.startsWith("//") && /^\/[a-zA-Z0-9._/-]+$/.test(url)) return url;
+  return fallback;
+}
+
 export async function POST(request: NextRequest) {
   const authResult = await verifyAdminRequest(request);
   if ("error" in authResult) {
@@ -108,8 +117,8 @@ export async function POST(request: NextRequest) {
     const categorySlug = (body.categorySlug ?? "").trim().slice(0, 80);
     const location = (body.location ?? "").trim().slice(0, 120);
     const description = (body.description ?? "").trim().slice(0, 1000);
-    const afterImage = (body.afterImage ?? "/og-image.jpg").trim().slice(0, 500);
-    const beforeImage = (body.beforeImage ?? "").trim().slice(0, 500);
+    const afterImage = sanitizeImageUrl(body.afterImage, "/og-image.jpg");
+    const beforeImage = sanitizeImageUrl(body.beforeImage, "");
 
     if (!title || !category || !location) {
       return NextResponse.json(

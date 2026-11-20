@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -11,43 +12,92 @@ import {
   getClientAuth,
   isFirebaseClientConfigured,
 } from "@/lib/firebaseClient";
-import {
-  QUOTE_STATUS_LABELS,
-  type QuoteRecord,
-  type QuoteStatus,
-} from "@/lib/types";
+import { servicesData, type ServiceCategory } from "@/data/servicesData";
 import type { Project } from "@/data/projectsData";
 import type { Testimonial } from "@/data/testimonialsData";
-import { servicesData } from "@/data/servicesData";
-import { whatsappLink } from "@/data/siteConfig";
+import type {
+  AttendanceRecord,
+  ChantierRecord,
+  ExpenseRecord,
+  QuoteRecord,
+  WorkerRecord,
+} from "@/lib/types";
+import AdminOverview, {
+  type AdminSection,
+} from "@/components/admin/AdminOverview";
+import AdminChantiers from "@/components/admin/AdminChantiers";
+import AdminWorkersAttendance from "@/components/admin/AdminWorkersAttendance";
+import AdminExpenses from "@/components/admin/AdminExpenses";
+import AdminServices from "@/components/admin/AdminServices";
+import AdminQuotes from "@/components/admin/AdminQuotes";
+import AdminShowcase from "@/components/admin/AdminShowcase";
 import {
+  LayoutDashboard,
+  HardHat,
+  Users,
+  Wallet,
+  FileText,
+  Wrench,
+  Image as ImageIcon,
   LogOut,
   RefreshCw,
-  FileText,
-  FolderKanban,
-  MessageSquareQuote,
-  Trash2,
-  Phone,
-  Mail,
-  MessageCircle,
-  Plus,
-  Star,
+  ExternalLink,
+  Menu,
+  X,
   Lock,
   AlertCircle,
   Loader2,
-  Download,
-  Save,
 } from "lucide-react";
 
-type Tab = "quotes" | "projects" | "testimonials";
-
-const STATUS_BADGE_CLASSES: Record<QuoteStatus, string> = {
-  nouveau: "bg-red-100 text-red-700 border-red-200",
-  contacte: "bg-blue-100 text-blue-700 border-blue-200",
-  devis_envoye: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  termine: "bg-green-100 text-green-700 border-green-200",
-  archive: "bg-gray-100 text-gray-600 border-gray-200",
-};
+const NAV_ITEMS: {
+  id: AdminSection;
+  label: string;
+  description: string;
+  icon: React.ElementType;
+}[] = [
+    {
+      id: "overview",
+      label: "Tableau de bord",
+      description: "Vue globale & indicateurs",
+      icon: LayoutDashboard,
+    },
+    {
+      id: "chantiers",
+      label: "Chantiers",
+      description: "Statuts, avancement & budgets",
+      icon: HardHat,
+    },
+    {
+      id: "workers",
+      label: "Ouvriers & Pointage",
+      description: "Équipe, présence & paie",
+      icon: Users,
+    },
+    {
+      id: "expenses",
+      label: "Dépenses & Matériaux",
+      description: "Achats & coûts chantiers",
+      icon: Wallet,
+    },
+    {
+      id: "quotes",
+      label: "Devis & Clients",
+      description: "Demandes entrantes",
+      icon: FileText,
+    },
+    {
+      id: "services",
+      label: "Services",
+      description: "Catalogue & prestations",
+      icon: Wrench,
+    },
+    {
+      id: "showcase",
+      label: "Portfolio & Avis",
+      description: "Projets & témoignages site",
+      icon: ImageIcon,
+    },
+  ];
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<User | null>(null);
@@ -57,38 +107,22 @@ export default function AdminDashboard() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
 
-  const [tab, setTab] = useState<Tab>("quotes");
+  const [section, setSection] = useState<AdminSection>("overview");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const [quotes, setQuotes] = useState<QuoteRecord[]>([]);
+  const [chantiers, setChantiers] = useState<ChantierRecord[]>([]);
+  const [workers, setWorkers] = useState<WorkerRecord[]>([]);
+  const [todayAttendance, setTodayAttendance] = useState<AttendanceRecord[]>(
+    []
+  );
+  const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
+  const [dbServices, setDbServices] = useState<ServiceCategory[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+
   const [loadingData, setLoadingData] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [search, setSearch] = useState("");
-  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
-  const [savingId, setSavingId] = useState<string | null>(null);
-
-  // New project form
-  const [newProject, setNewProject] = useState({
-    title: "",
-    categorySlug: servicesData[0].slug,
-    location: "Tanger",
-    description: "",
-    afterImage: "/og-image.jpg",
-    beforeImage: "",
-    featured: true,
-  });
-
-  // New testimonial form
-  const [newTestimonial, setNewTestimonial] = useState({
-    name: "",
-    role: "Propriétaire",
-    location: "Tanger",
-    service: servicesData[0].title,
-    rating: 5,
-    text: "",
-  });
 
   useEffect(() => {
     const auth = getClientAuth();
@@ -123,9 +157,15 @@ export default function AdminDashboard() {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     };
+    const today = new Date().toISOString().slice(0, 10);
 
-    const [qRes, pRes, tRes] = await Promise.all([
+    const [qRes, cRes, wRes, aRes, eRes, sRes, pRes, tRes] = await Promise.all([
       fetch("/api/admin/quotes", { headers }),
+      fetch("/api/admin/chantiers", { headers }),
+      fetch("/api/admin/workers", { headers }),
+      fetch(`/api/admin/attendance?date=${today}`, { headers }),
+      fetch("/api/admin/expenses", { headers }),
+      fetch("/api/admin/services", { headers }),
       fetch("/api/admin/projects", { headers }),
       fetch("/api/admin/testimonials", { headers }),
     ]);
@@ -139,18 +179,34 @@ export default function AdminDashboard() {
       };
     }
 
-    const [qData, pData, tData] = (await Promise.all([
-      qRes.json(),
-      pRes.ok ? pRes.json() : { projects: [] },
-      tRes.ok ? tRes.json() : { testimonials: [] },
-    ])) as [
-      { quotes?: QuoteRecord[] },
-      { projects?: Project[] },
-      { testimonials?: Testimonial[] }
-    ];
+    const [qData, cData, wData, aData, eData, sData, pData, tData] =
+      (await Promise.all([
+        qRes.json(),
+        cRes.ok ? cRes.json() : { chantiers: [] },
+        wRes.ok ? wRes.json() : { workers: [] },
+        aRes.ok ? aRes.json() : { records: [] },
+        eRes.ok ? eRes.json() : { expenses: [] },
+        sRes.ok ? sRes.json() : { services: [] },
+        pRes.ok ? pRes.json() : { projects: [] },
+        tRes.ok ? tRes.json() : { testimonials: [] },
+      ])) as [
+        { quotes?: QuoteRecord[] },
+        { chantiers?: ChantierRecord[] },
+        { workers?: WorkerRecord[] },
+        { records?: AttendanceRecord[] },
+        { expenses?: ExpenseRecord[] },
+        { services?: ServiceCategory[] },
+        { projects?: Project[] },
+        { testimonials?: Testimonial[] }
+      ];
 
     return {
       quotes: qData.quotes ?? [],
+      chantiers: cData.chantiers ?? [],
+      workers: wData.workers ?? [],
+      todayAttendance: aData.records ?? [],
+      expenses: eData.expenses ?? [],
+      services: sData.services ?? [],
       projects: pData.projects ?? [],
       testimonials: tData.testimonials ?? [],
     };
@@ -165,11 +221,12 @@ export default function AdminDashboard() {
       if ("error" in res && res.error) {
         setApiError(res.error);
       } else {
-        const loadedQuotes = res.quotes ?? [];
-        setQuotes(loadedQuotes);
-        setNoteDrafts(
-          Object.fromEntries(loadedQuotes.map((q) => [q.id, q.notes]))
-        );
+        setQuotes(res.quotes ?? []);
+        setChantiers(res.chantiers ?? []);
+        setWorkers(res.workers ?? []);
+        setTodayAttendance(res.todayAttendance ?? []);
+        setExpenses(res.expenses ?? []);
+        setDbServices(res.services ?? []);
         setProjects(res.projects ?? []);
         setTestimonials(res.testimonials ?? []);
       }
@@ -190,12 +247,13 @@ export default function AdminDashboard() {
         if ("error" in res && res.error) {
           setApiError(res.error);
         } else {
-          const loadedQuotes = res.quotes ?? [];
           setApiError(null);
-          setQuotes(loadedQuotes);
-          setNoteDrafts(
-            Object.fromEntries(loadedQuotes.map((q) => [q.id, q.notes]))
-          );
+          setQuotes(res.quotes ?? []);
+          setChantiers(res.chantiers ?? []);
+          setWorkers(res.workers ?? []);
+          setTodayAttendance(res.todayAttendance ?? []);
+          setExpenses(res.expenses ?? []);
+          setDbServices(res.services ?? []);
           setProjects(res.projects ?? []);
           setTestimonials(res.testimonials ?? []);
         }
@@ -232,129 +290,10 @@ export default function AdminDashboard() {
     if (auth) await signOut(auth);
   };
 
-  const updateQuote = async (
-    id: string,
-    payload: { status?: QuoteStatus; notes?: string }
-  ) => {
-    setSavingId(id);
-    try {
-      const res = await authFetch(`/api/admin/quotes/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        setQuotes((prev) =>
-          prev.map((q) =>
-            q.id === id
-              ? {
-                  ...q,
-                  status: payload.status ?? q.status,
-                  notes: payload.notes ?? q.notes,
-                }
-              : q
-          )
-        );
-      }
-    } finally {
-      setSavingId(null);
-    }
-  };
-
-  const deleteQuote = async (id: string) => {
-    if (!window.confirm("Supprimer définitivement cette demande de devis ?")) {
-      return;
-    }
-    const res = await authFetch(`/api/admin/quotes/${id}`, {
-      method: "DELETE",
-    });
-    if (res.ok) {
-      setQuotes((prev) => prev.filter((q) => q.id !== id));
-    }
-  };
-
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cat = servicesData.find((s) => s.slug === newProject.categorySlug);
-    const res = await authFetch("/api/admin/projects", {
-      method: "POST",
-      body: JSON.stringify({
-        ...newProject,
-        category: cat?.title ?? "Rénovation",
-      }),
-    });
-    if (res.ok) {
-      setNewProject({
-        title: "",
-        categorySlug: servicesData[0].slug,
-        location: "Tanger",
-        description: "",
-        afterImage: "/og-image.jpg",
-        beforeImage: "",
-        featured: true,
-      });
-      await loadAllData();
-    }
-  };
-
-  const seedDefaultProjects = async () => {
-    const res = await authFetch("/api/admin/projects", {
-      method: "POST",
-      body: JSON.stringify({ seedDefaults: true }),
-    });
-    if (res.ok) await loadAllData();
-  };
-
-  const deleteProject = async (id: string) => {
-    if (!window.confirm("Supprimer ce projet ?")) return;
-    const res = await authFetch(`/api/admin/projects/${id}`, {
-      method: "DELETE",
-    });
-    if (res.ok) {
-      setProjects((prev) => prev.filter((p) => p.id !== id));
-    }
-  };
-
-  const handleCreateTestimonial = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const res = await authFetch("/api/admin/testimonials", {
-      method: "POST",
-      body: JSON.stringify(newTestimonial),
-    });
-    if (res.ok) {
-      setNewTestimonial({
-        name: "",
-        role: "Propriétaire",
-        location: "Tanger",
-        service: servicesData[0].title,
-        rating: 5,
-        text: "",
-      });
-      await loadAllData();
-    }
-  };
-
-  const seedDefaultTestimonials = async () => {
-    const res = await authFetch("/api/admin/testimonials", {
-      method: "POST",
-      body: JSON.stringify({ seedDefaults: true }),
-    });
-    if (res.ok) await loadAllData();
-  };
-
-  const deleteTestimonial = async (id: string) => {
-    if (!window.confirm("Supprimer ce témoignage ?")) return;
-    const res = await authFetch(`/api/admin/testimonials/${id}`, {
-      method: "DELETE",
-    });
-    if (res.ok) {
-      setTestimonials((prev) => prev.filter((t) => t.id !== id));
-    }
-  };
-
   // Setup screen when Firebase client env vars are missing
   if (!isFirebaseClientConfigured) {
     return (
-      <div className="min-h-screen bg-gray-950 pt-36 pb-20 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-gray-950 p-4">
         <div className="mx-auto max-w-xl rounded-2xl bg-white p-8 shadow-2xl">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-100 text-yellow-600">
             <Lock className="h-6 w-6" />
@@ -363,7 +302,7 @@ export default function AdminDashboard() {
             Configuration Firebase requise
           </h1>
           <p className="mt-2 text-sm text-gray-600 leading-relaxed">
-            Pour activer l&apos;espace administrateur, copiez{" "}
+            Copiez{" "}
             <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">
               .env.example
             </code>{" "}
@@ -371,8 +310,7 @@ export default function AdminDashboard() {
             <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">
               .env.local
             </code>{" "}
-            et renseignez vos clés Firebase et Gmail SMTP, puis redémarrez le
-            serveur.
+            et renseignez vos clés Firebase, puis redémarrez le serveur.
           </p>
         </div>
       </div>
@@ -387,20 +325,23 @@ export default function AdminDashboard() {
     );
   }
 
-  // Login screen
+  // Standalone Login screen
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-950 px-4 pt-32 pb-16">
+      <div className="flex min-h-screen items-center justify-center bg-gray-950 px-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
           <div className="mb-6 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gray-900 text-yellow-400">
+              <HardHat className="h-6 w-6" />
+            </div>
             <span className="inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs font-bold text-yellow-800">
-              Espace Administrateur
+              TANKECH PRO — ERP
             </span>
             <h1 className="mt-3 text-2xl font-black text-gray-900">
-              Connexion TANKECH
+              Espace Administrateur
             </h1>
             <p className="mt-1 text-sm text-gray-500">
-              Gérez vos devis, projets et témoignages clients
+              Gestion des chantiers, ouvriers, pointage, dépenses &amp; devis
             </p>
           </div>
 
@@ -444,610 +385,265 @@ export default function AdminDashboard() {
               )}
             </button>
           </form>
+
+          <div className="mt-6 text-center">
+            <Link
+              href="/"
+              className="text-xs font-semibold text-gray-400 hover:text-gray-700"
+            >
+              ← Retour au site public TANKECH
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
-  const filteredQuotes = quotes.filter((q) => {
-    if (statusFilter !== "all" && q.status !== statusFilter) return false;
-    if (search.trim()) {
-      const term = search.toLowerCase();
-      return (
-        q.name.toLowerCase().includes(term) ||
-        q.phone.toLowerCase().includes(term) ||
-        q.category.toLowerCase().includes(term) ||
-        q.city.toLowerCase().includes(term) ||
-        q.message.toLowerCase().includes(term)
-      );
-    }
-    return true;
-  });
-
-  const newCount = quotes.filter((q) => q.status === "nouveau").length;
-  const inProgressCount = quotes.filter(
-    (q) => q.status === "contacte" || q.status === "devis_envoye"
+  const effectiveServices = dbServices.length > 0 ? dbServices : servicesData;
+  const newQuotesCount = quotes.filter((q) => q.status === "nouveau").length;
+  const activeChantiersCount = chantiers.filter(
+    (c) => c.status === "en_cours"
   ).length;
-  const doneCount = quotes.filter((q) => q.status === "termine").length;
+  const currentMeta =
+    NAV_ITEMS.find((item) => item.id === section) ?? NAV_ITEMS[0];
 
-  return (
-    <div className="min-h-screen bg-gray-50 pt-28 pb-20">
-      {/* Admin top header */}
-      <div className="bg-gray-900 text-white py-8">
-        <div className="mx-auto max-w-7xl px-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+  const renderSidebarContent = () => (
+    <div className="flex h-full flex-col bg-gray-950 text-white">
+      {/* Brand */}
+      <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-500 text-gray-950 font-black">
+            <HardHat className="h-5 w-5" />
+          </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-yellow-400">
-              Tableau de bord TANKECH
+            <p className="text-base font-black tracking-tight leading-none">
+              TANKECH
             </p>
-            <h1 className="text-2xl md:text-3xl font-black">Administration</h1>
-            <p className="text-xs text-white/50 mt-1">
-              Connecté en tant que {user.email}
+            <p className="text-[11px] font-semibold text-yellow-400 mt-1">
+              Gestion Chantiers
             </p>
           </div>
-          <div className="flex items-center gap-3">
+        </div>
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(false)}
+          aria-label="Fermer le menu"
+          className="lg:hidden rounded-lg p-1.5 text-white/60 hover:bg-white/10"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+        {NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const active = section === item.id;
+          const badge =
+            item.id === "quotes" && newQuotesCount > 0
+              ? { value: newQuotesCount, color: "bg-red-500 text-white" }
+              : item.id === "chantiers" && activeChantiersCount > 0
+                ? {
+                  value: activeChantiersCount,
+                  color: "bg-yellow-500 text-gray-950",
+                }
+                : null;
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => {
+                setSection(item.id);
+                setMobileMenuOpen(false);
+              }}
+              className={`flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-left text-sm font-semibold transition ${active
+                ? "bg-yellow-500 text-gray-950 shadow-lg"
+                : "text-white/70 hover:bg-white/5 hover:text-white"
+                }`}
+            >
+              <span className="flex items-center gap-3">
+                <Icon className="h-4 w-4 shrink-0" />
+                {item.label}
+              </span>
+              {badge && (
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${active ? "bg-gray-950 text-yellow-400" : badge.color
+                    }`}
+                >
+                  {badge.value}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Bottom account & public site link */}
+      <div className="border-t border-white/10 p-4 space-y-2">
+        <Link
+          href="/"
+          target="_blank"
+          className="flex items-center justify-between rounded-xl bg-white/5 px-3.5 py-2.5 text-xs font-semibold text-white/80 hover:bg-white/10 transition"
+        >
+          <span>Voir le site public</span>
+          <ExternalLink className="h-3.5 w-3.5" />
+        </Link>
+        <div className="flex items-center justify-between rounded-xl bg-white/5 px-3.5 py-2.5">
+          <div className="min-w-0 pr-2">
+            <p className="text-[11px] text-white/40">Administrateur</p>
+            <p className="text-xs font-semibold text-white truncate">
+              {user.email}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            aria-label="Déconnexion"
+            title="Déconnexion"
+            className="rounded-lg p-2 text-red-400 hover:bg-red-500/20 transition shrink-0"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:block lg:w-64 shadow-xl z-30">
+        {renderSidebarContent()}
+      </aside>
+
+      {/* Mobile Drawer */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <aside className="relative z-10 w-72 max-w-[85vw] h-full shadow-2xl">
+            {renderSidebarContent()}
+          </aside>
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col lg:pl-64 min-w-0">
+        {/* Top App Bar */}
+        <header className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-gray-200 bg-white/95 backdrop-blur px-4 sm:px-6 py-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Ouvrir le menu"
+              className="lg:hidden rounded-xl border border-gray-200 p-2 text-gray-700 hover:bg-gray-50"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-black text-gray-900 truncate">
+                {currentMeta.label}
+              </h1>
+              <p className="text-xs text-gray-400 truncate">
+                {currentMeta.description}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={loadAllData}
               disabled={loadingData}
-              className="flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20 transition"
+              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition"
             >
               <RefreshCw
-                className={`h-4 w-4 ${loadingData ? "animate-spin" : ""}`}
+                className={`h-3.5 w-3.5 ${loadingData ? "animate-spin" : ""}`}
               />
-              Actualiser
-            </button>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-500 transition"
-            >
-              <LogOut className="h-4 w-4" /> Déconnexion
+              <span className="hidden sm:inline">Actualiser</span>
             </button>
           </div>
-        </div>
-      </div>
+        </header>
 
-      <div className="mx-auto max-w-7xl px-4 mt-8">
-        {apiError && (
-          <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            <AlertCircle className="h-5 w-5 shrink-0" />
-            <span>{apiError}</span>
-          </div>
-        )}
-
-        {/* Tabs */}
-        <div className="flex flex-wrap gap-2 mb-8">
-          <button
-            type="button"
-            onClick={() => setTab("quotes")}
-            className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition ${
-              tab === "quotes"
-                ? "bg-gray-900 text-white shadow"
-                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100"
-            }`}
-          >
-            <FileText className="h-4 w-4" />
-            Devis ({quotes.length})
-            {newCount > 0 && (
-              <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs text-white">
-                {newCount}
-              </span>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("projects")}
-            className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition ${
-              tab === "projects"
-                ? "bg-gray-900 text-white shadow"
-                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100"
-            }`}
-          >
-            <FolderKanban className="h-4 w-4" />
-            Projets ({projects.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("testimonials")}
-            className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition ${
-              tab === "testimonials"
-                ? "bg-gray-900 text-white shadow"
-                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100"
-            }`}
-          >
-            <MessageSquareQuote className="h-4 w-4" />
-            Témoignages ({testimonials.length})
-          </button>
-        </div>
-
-        {/* QUOTES TAB */}
-        {tab === "quotes" && (
-          <div className="space-y-6">
-            {/* KPIs */}
-            <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-              <div className="rounded-xl bg-white border border-gray-100 p-5 shadow-sm">
-                <p className="text-xs font-semibold text-gray-400 uppercase">
-                  Total Devis
-                </p>
-                <p className="mt-2 text-3xl font-black text-gray-900">
-                  {quotes.length}
-                </p>
-              </div>
-              <div className="rounded-xl bg-white border border-gray-100 p-5 shadow-sm">
-                <p className="text-xs font-semibold text-red-500 uppercase">
-                  Nouveaux
-                </p>
-                <p className="mt-2 text-3xl font-black text-red-600">
-                  {newCount}
-                </p>
-              </div>
-              <div className="rounded-xl bg-white border border-gray-100 p-5 shadow-sm">
-                <p className="text-xs font-semibold text-yellow-600 uppercase">
-                  En cours
-                </p>
-                <p className="mt-2 text-3xl font-black text-yellow-600">
-                  {inProgressCount}
-                </p>
-              </div>
-              <div className="rounded-xl bg-white border border-gray-100 p-5 shadow-sm">
-                <p className="text-xs font-semibold text-green-600 uppercase">
-                  Terminés
-                </p>
-                <p className="mt-2 text-3xl font-black text-green-600">
-                  {doneCount}
-                </p>
-              </div>
+        {/* Main Workspace */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+          {apiError && (
+            <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              <AlertCircle className="h-5 w-5 shrink-0" />
+              <span>{apiError}</span>
             </div>
+          )}
 
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="text"
-                placeholder="Rechercher par nom, téléphone, ville, service…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:border-yellow-400 focus:outline-none"
-              />
-              <select
-                aria-label="Filtrer par statut"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700"
-              >
-                <option value="all">Tous les statuts</option>
-                {(Object.keys(QUOTE_STATUS_LABELS) as QuoteStatus[]).map(
-                  (st) => (
-                    <option key={st} value={st}>
-                      {QUOTE_STATUS_LABELS[st]}
-                    </option>
-                  )
-                )}
-              </select>
-            </div>
+          {section === "overview" && (
+            <AdminOverview
+              quotes={quotes}
+              chantiers={chantiers}
+              workers={workers}
+              todayAttendance={todayAttendance}
+              expenses={expenses}
+              onNavigate={setSection}
+            />
+          )}
 
-            {/* Quotes list */}
-            {filteredQuotes.length === 0 ? (
-              <div className="rounded-2xl bg-white border border-gray-100 p-12 text-center text-gray-400">
-                Aucune demande de devis trouvée.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredQuotes.map((q) => (
-                  <div
-                    key={q.id}
-                    className="rounded-2xl bg-white border border-gray-100 p-6 shadow-sm"
-                  >
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-lg font-bold text-gray-900">
-                            {q.name}
-                          </h3>
-                          <span
-                            className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${STATUS_BADGE_CLASSES[q.status]}`}
-                          >
-                            {QUOTE_STATUS_LABELS[q.status]}
-                          </span>
-                          {q.category && (
-                            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
-                              {q.category}
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-1 text-xs text-gray-400">
-                          Reçu le{" "}
-                          {new Date(q.createdAt).toLocaleString("fr-MA")}
-                          {q.city ? ` • ${q.city}` : ""}
-                        </p>
-                        {q.services.length > 0 && (
-                          <p className="mt-2 text-xs text-gray-600">
-                            <strong>Services :</strong> {q.services.join(", ")}
-                          </p>
-                        )}
-                        {q.message && (
-                          <p className="mt-2 rounded-lg bg-gray-50 p-3 text-sm text-gray-700 whitespace-pre-wrap">
-                            {q.message}
-                          </p>
-                        )}
-                      </div>
+          {section === "chantiers" && (
+            <AdminChantiers
+              chantiers={chantiers}
+              workers={workers}
+              services={effectiveServices}
+              authFetch={authFetch}
+              onRefresh={loadAllData}
+            />
+          )}
 
-                      {/* Quick actions & status */}
-                      <div className="flex flex-wrap items-center gap-2 shrink-0">
-                        <a
-                          href={`tel:${q.phone}`}
-                          className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-yellow-100"
-                        >
-                          <Phone className="h-3.5 w-3.5" /> {q.phone}
-                        </a>
-                        <a
-                          href={whatsappLink(
-                            `Bonjour ${q.name}, merci pour votre demande de devis chez TANKECH.`
-                          )}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-lg bg-[#25D366] px-3 py-2 text-xs font-semibold text-white hover:bg-green-600"
-                        >
-                          <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
-                        </a>
-                        {q.email && (
-                          <a
-                            href={`mailto:${q.email}`}
-                            className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200"
-                          >
-                            <Mail className="h-3.5 w-3.5" /> Email
-                          </a>
-                        )}
-                        <select
-                          aria-label={`Statut du devis de ${q.name}`}
-                          value={q.status}
-                          disabled={savingId === q.id}
-                          onChange={(e) =>
-                            updateQuote(q.id, {
-                              status: e.target.value as QuoteStatus,
-                            })
-                          }
-                          className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700"
-                        >
-                          {(
-                            Object.keys(QUOTE_STATUS_LABELS) as QuoteStatus[]
-                          ).map((st) => (
-                            <option key={st} value={st}>
-                              {QUOTE_STATUS_LABELS[st]}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => deleteQuote(q.id)}
-                          aria-label="Supprimer ce devis"
-                          className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 transition"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
+          {section === "workers" && (
+            <AdminWorkersAttendance
+              workers={workers}
+              chantiers={chantiers}
+              authFetch={authFetch}
+              onRefresh={loadAllData}
+            />
+          )}
 
-                    {/* Internal notes */}
-                    <div className="mt-4 flex gap-2 border-t border-gray-100 pt-4">
-                      <input
-                        type="text"
-                        placeholder="Note interne (montant estimé, date de visite…)"
-                        value={noteDrafts[q.id] ?? ""}
-                        onChange={(e) =>
-                          setNoteDrafts((prev) => ({
-                            ...prev,
-                            [q.id]: e.target.value,
-                          }))
-                        }
-                        className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-xs focus:border-yellow-400 focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        disabled={savingId === q.id}
-                        onClick={() =>
-                          updateQuote(q.id, { notes: noteDrafts[q.id] ?? "" })
-                        }
-                        className="inline-flex items-center gap-1 rounded-lg bg-gray-900 px-3 py-2 text-xs font-bold text-white hover:bg-yellow-500 hover:text-gray-900 transition"
-                      >
-                        <Save className="h-3.5 w-3.5" /> Enregistrer
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          {section === "expenses" && (
+            <AdminExpenses
+              expenses={expenses}
+              chantiers={chantiers}
+              authFetch={authFetch}
+              onRefresh={loadAllData}
+            />
+          )}
 
-        {/* PROJECTS TAB */}
-        {tab === "projects" && (
-          <div className="grid gap-8 lg:grid-cols-3">
-            <form
-              onSubmit={handleCreateProject}
-              className="rounded-2xl bg-white border border-gray-100 p-6 shadow-sm space-y-4 h-fit"
-            >
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Plus className="h-5 w-5 text-yellow-500" /> Ajouter un Projet
-              </h2>
-              <input
-                required
-                type="text"
-                placeholder="Titre du projet *"
-                value={newProject.title}
-                onChange={(e) =>
-                  setNewProject({ ...newProject, title: e.target.value })
-                }
-                className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
-              />
-              <select
-                value={newProject.categorySlug}
-                onChange={(e) =>
-                  setNewProject({ ...newProject, categorySlug: e.target.value })
-                }
-                className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
-              >
-                {servicesData.map((s) => (
-                  <option key={s.slug} value={s.slug}>
-                    {s.title}
-                  </option>
-                ))}
-              </select>
-              <input
-                required
-                type="text"
-                placeholder="Localisation (ex: Tanger, Malabata) *"
-                value={newProject.location}
-                onChange={(e) =>
-                  setNewProject({ ...newProject, location: e.target.value })
-                }
-                className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
-              />
-              <input
-                required
-                type="text"
-                placeholder="Image Après (ex: /services/renovation.jpg ou URL https://...)"
-                value={newProject.afterImage}
-                onChange={(e) =>
-                  setNewProject({ ...newProject, afterImage: e.target.value })
-                }
-                className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
-              />
-              <input
-                type="text"
-                placeholder="Image Avant (optionnel)"
-                value={newProject.beforeImage}
-                onChange={(e) =>
-                  setNewProject({ ...newProject, beforeImage: e.target.value })
-                }
-                className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
-              />
-              <textarea
-                rows={3}
-                placeholder="Description du chantier…"
-                value={newProject.description}
-                onChange={(e) =>
-                  setNewProject({ ...newProject, description: e.target.value })
-                }
-                className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm resize-none"
-              />
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={newProject.featured}
-                  onChange={(e) =>
-                    setNewProject({ ...newProject, featured: e.target.checked })
-                  }
-                />
-                Mettre en avant sur l&apos;accueil
-              </label>
-              <button
-                type="submit"
-                className="w-full rounded-xl bg-yellow-500 py-3 text-sm font-bold text-gray-900 hover:bg-yellow-400 transition"
-              >
-                Ajouter le projet
-              </button>
-            </form>
+          {section === "quotes" && (
+            <AdminQuotes
+              quotes={quotes}
+              services={effectiveServices}
+              authFetch={authFetch}
+              onRefresh={loadAllData}
+              onConvertedToChantier={() => setSection("chantiers")}
+            />
+          )}
 
-            <div className="lg:col-span-2 space-y-4">
-              {projects.length === 0 ? (
-                <div className="rounded-2xl bg-white border border-gray-100 p-10 text-center">
-                  <p className="text-sm text-gray-500 mb-4">
-                    Aucun projet dans Firestore (le site affiche actuellement
-                    les 6 projets par défaut).
-                  </p>
-                  <button
-                    type="button"
-                    onClick={seedDefaultProjects}
-                    className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-gray-800 transition"
-                  >
-                    <Download className="h-4 w-4" /> Importer les 6 projets par
-                    défaut
-                  </button>
-                </div>
-              ) : (
-                projects.map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-start justify-between gap-4 rounded-2xl bg-white border border-gray-100 p-5 shadow-sm"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-gray-900">{p.title}</h3>
-                        <span className="rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-semibold text-yellow-800">
-                          {p.category}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-1">{p.location}</p>
-                      <p className="text-sm text-gray-600 mt-2">
-                        {p.description}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-2 break-all">
-                        Image : {p.afterImage}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => deleteProject(p.id)}
-                      aria-label={`Supprimer ${p.title}`}
-                      className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 transition"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
+          {section === "services" && (
+            <AdminServices
+              services={dbServices}
+              authFetch={authFetch}
+              onRefresh={loadAllData}
+            />
+          )}
 
-        {/* TESTIMONIALS TAB */}
-        {tab === "testimonials" && (
-          <div className="grid gap-8 lg:grid-cols-3">
-            <form
-              onSubmit={handleCreateTestimonial}
-              className="rounded-2xl bg-white border border-gray-100 p-6 shadow-sm space-y-4 h-fit"
-            >
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Plus className="h-5 w-5 text-yellow-500" /> Ajouter un
-                Témoignage
-              </h2>
-              <input
-                required
-                type="text"
-                placeholder="Nom du client (ex: Mohammed B.) *"
-                value={newTestimonial.name}
-                onChange={(e) =>
-                  setNewTestimonial({ ...newTestimonial, name: e.target.value })
-                }
-                className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
-              />
-              <input
-                type="text"
-                placeholder="Rôle (ex: Propriétaire Villa)"
-                value={newTestimonial.role}
-                onChange={(e) =>
-                  setNewTestimonial({ ...newTestimonial, role: e.target.value })
-                }
-                className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
-              />
-              <input
-                type="text"
-                placeholder="Localisation (ex: Malabata, Tanger)"
-                value={newTestimonial.location}
-                onChange={(e) =>
-                  setNewTestimonial({
-                    ...newTestimonial,
-                    location: e.target.value,
-                  })
-                }
-                className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
-              />
-              <select
-                value={newTestimonial.service}
-                onChange={(e) =>
-                  setNewTestimonial({
-                    ...newTestimonial,
-                    service: e.target.value,
-                  })
-                }
-                className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
-              >
-                {servicesData.map((s) => (
-                  <option key={s.slug} value={s.title}>
-                    {s.title}
-                  </option>
-                ))}
-              </select>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Note :</span>
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    aria-label={`${n} étoiles`}
-                    onClick={() =>
-                      setNewTestimonial({ ...newTestimonial, rating: n })
-                    }
-                    className="p-1"
-                  >
-                    <Star
-                      className={`h-5 w-5 ${
-                        n <= newTestimonial.rating
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "text-gray-300"
-                      }`}
-                    />
-                  </button>
-                ))}
-              </div>
-              <textarea
-                required
-                rows={4}
-                placeholder="Avis du client *"
-                value={newTestimonial.text}
-                onChange={(e) =>
-                  setNewTestimonial({ ...newTestimonial, text: e.target.value })
-                }
-                className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm resize-none"
-              />
-              <button
-                type="submit"
-                className="w-full rounded-xl bg-yellow-500 py-3 text-sm font-bold text-gray-900 hover:bg-yellow-400 transition"
-              >
-                Ajouter le témoignage
-              </button>
-            </form>
-
-            <div className="lg:col-span-2 space-y-4">
-              {testimonials.length === 0 ? (
-                <div className="rounded-2xl bg-white border border-gray-100 p-10 text-center">
-                  <p className="text-sm text-gray-500 mb-4">
-                    Aucun témoignage dans Firestore (le site affiche
-                    actuellement les 6 témoignages par défaut).
-                  </p>
-                  <button
-                    type="button"
-                    onClick={seedDefaultTestimonials}
-                    className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-gray-800 transition"
-                  >
-                    <Download className="h-4 w-4" /> Importer les 6 témoignages
-                    par défaut
-                  </button>
-                </div>
-              ) : (
-                testimonials.map((t) => (
-                  <div
-                    key={t.id}
-                    className="flex items-start justify-between gap-4 rounded-2xl bg-white border border-gray-100 p-5 shadow-sm"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-gray-900">{t.name}</h3>
-                        <span className="text-xs text-gray-400">
-                          {t.role} — {t.location}
-                        </span>
-                      </div>
-                      <p className="text-xs font-semibold text-yellow-600 mt-1">
-                        {t.service} • {t.rating}/5 ★
-                      </p>
-                      <p className="text-sm text-gray-600 mt-2">
-                        &ldquo;{t.text}&rdquo;
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => deleteTestimonial(t.id)}
-                      aria-label={`Supprimer l'avis de ${t.name}`}
-                      className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 transition"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
+          {section === "showcase" && (
+            <AdminShowcase
+              projects={projects}
+              testimonials={testimonials}
+              services={effectiveServices}
+              authFetch={authFetch}
+              onRefresh={loadAllData}
+            />
+          )}
+        </main>
       </div>
     </div>
   );

@@ -60,6 +60,93 @@ rules_version = '2';
 //      - avatar:    string (optional, empty or valid image URL, <= 1000 chars)
 //      - createdAt: timestamp (required, immutable)
 //
+// 4. Collection: chantiers
+//    Document ID: auto-generated chantierId
+//    Access: Private (ERP construction sites & client PII). Admin-only
+//            read, create, update, and delete.
+//    Fields:
+//      - name:              string (required, 1..150 chars)
+//      - clientName:        string (required, 0..120 chars)
+//      - clientPhone:       string (required, 0..30 chars)
+//      - location:          string (required, 0..150 chars)
+//      - category:          string (required, 0..100 chars)
+//      - status:            string enum (required: 'planifie' | 'en_cours' |
+//                           'en_pause' | 'termine' | 'annule')
+//      - progress:          int (required, 0..100)
+//      - budget:            number (required, >= 0)
+//      - spent:             number (required, >= 0)
+//      - startDate:         string (required, 0..30 chars)
+//      - endDate:           string (required, 0..30 chars)
+//      - assignedWorkerIds: list<string> (required, <= 50 items, each 1..128 chars)
+//      - notes:             string (required, 0..2000 chars)
+//      - createdAt:         timestamp (required, immutable)
+//      - updatedAt:         timestamp (required, >= createdAt)
+//
+// 5. Collection: workers
+//    Document ID: auto-generated workerId
+//    Access: Private (PII — worker phone & national ID CIN). Admin-only
+//            read, create, update, and delete.
+//    Fields:
+//      - name:      string (required, 1..120 chars)
+//      - phone:     string (required, 0..30 chars)
+//      - cin:       string (required, 0..30 chars)
+//      - specialty: string (required, 1..80 chars)
+//      - dailyRate: number (required, >= 0)
+//      - active:    bool (required)
+//      - notes:     string (required, 0..1000 chars)
+//      - createdAt: timestamp (required, immutable)
+//      - updatedAt: timestamp (required, >= createdAt)
+//
+// 6. Collection: attendance
+//    Document ID: `${date}_${workerId}` or auto-generated attendanceId
+//    Access: Private (ERP daily worker attendance & payroll). Admin-only
+//            read, create, update, and delete.
+//    Fields:
+//      - date:         string (required, immutable, YYYY-MM-DD)
+//      - workerId:     string (required, immutable, 1..128 chars)
+//      - workerName:   string (required, 1..120 chars)
+//      - chantierId:   string (required, 0..128 chars)
+//      - chantierName: string (required, 0..150 chars)
+//      - status:       string enum (required: 'present' | 'demi_journee' |
+//                      'absent' | 'conge')
+//      - dailyRate:    number (required, >= 0)
+//      - amount:       number (required, >= 0)
+//      - notes:        string (required, 0..500 chars)
+//      - updatedAt:    timestamp (required)
+//
+// 7. Collection: expenses
+//    Document ID: auto-generated expenseId
+//    Access: Private (ERP construction site expenses & supplier costs).
+//            Admin-only read, create, update, and delete.
+//    Fields:
+//      - chantierId:   string (required, 0..128 chars)
+//      - chantierName: string (required, 0..150 chars)
+//      - category:     string (required, 1..80 chars)
+//      - description:  string (required, 1..300 chars)
+//      - amount:       number (required, >= 0)
+//      - date:         string (required, 0..30 chars)
+//      - supplier:     string (required, 0..120 chars)
+//      - createdAt:    timestamp (required, immutable)
+//
+// 8. Collection: services
+//    Document ID: serviceSlug (lowercase hyphenated slug)
+//    Access: Public read (service catalog, no PII). Writes strictly
+//            restricted to authenticated admins.
+//    Fields:
+//      - slug:             string (required, immutable, valid slug == serviceSlug)
+//      - title:            string (required, 1..120 chars)
+//      - badge:            string (required, 0..80 chars)
+//      - badgeColor:       string enum (required: 'red' | 'blue' | 'green' |
+//                          'yellow' | 'purple' | 'orange')
+//      - icon:             string (required, 1..40 chars)
+//      - coverImage:       string (required, valid image URL/path, <= 1000 chars)
+//      - shortDescription: string (required, 0..500 chars)
+//      - longDescription:  string (required, 0..2000 chars)
+//      - emergency:        bool (optional)
+//      - services:         list<map> (required, <= 30 items, each {id, name, description})
+//      - order:            int (optional, 0..1000)
+//      - updatedAt:        timestamp (required)
+//
 // ===============================================================
 
 service cloud.firestore {
@@ -116,6 +203,18 @@ service cloud.firestore {
       return val is string && val.size() >= minLen && val.size() <= maxLen;
     }
 
+    // Non-negative bounded number validation (prevents negative, NaN, and overflow)
+    function isNonNegativeNumber(val, maxVal) {
+      return val is number && val >= 0 && val <= maxVal;
+    }
+
+    // Calendar date format YYYY-MM-DD (validates format & month/day digit ranges)
+    function isValidIsoDateOnly(dateStr) {
+      return dateStr is string &&
+        dateStr.size() == 10 &&
+        dateStr.matches("^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$");
+    }
+
     // Email format validation (allows empty string for optional email fields)
     function isValidOptionalEmail(email) {
       return email is string &&
@@ -124,7 +223,7 @@ service cloud.firestore {
           email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"));
     }
 
-    // URL/path validation for portfolio & avatar images:
+    // URL/path validation for portfolio, service & avatar images:
     // Accepts HTTPS URLs or safe root-relative paths (e.g. /services/gros-oeuvre.jpg),
     // blocking javascript:/data: schemes, protocol-relative URLs (//), and traversal (..).
     function isValidImageUrl(url) {
@@ -174,6 +273,72 @@ service cloud.firestore {
         isValidServiceItem(list, 14) && isValidServiceItem(list, 15) &&
         isValidServiceItem(list, 16) && isValidServiceItem(list, 17) &&
         isValidServiceItem(list, 18) && isValidServiceItem(list, 19);
+    }
+
+    // Deep array inspection for chantiers.assignedWorkerIds (max 50 non-empty strings, each 1..128 chars)
+    function isValidWorkerIdItem(list, idx) {
+      return idx >= list.size() ||
+        (list[idx] is string && list[idx].size() >= 1 && list[idx].size() <= 128);
+    }
+
+    function isValidWorkerIdChunk10(list, start) {
+      return start >= list.size() || (
+        isValidWorkerIdItem(list, start) &&
+        isValidWorkerIdItem(list, start + 1) &&
+        isValidWorkerIdItem(list, start + 2) &&
+        isValidWorkerIdItem(list, start + 3) &&
+        isValidWorkerIdItem(list, start + 4) &&
+        isValidWorkerIdItem(list, start + 5) &&
+        isValidWorkerIdItem(list, start + 6) &&
+        isValidWorkerIdItem(list, start + 7) &&
+        isValidWorkerIdItem(list, start + 8) &&
+        isValidWorkerIdItem(list, start + 9)
+      );
+    }
+
+    function isValidWorkerIdList(list) {
+      return list is list &&
+        list.size() <= 50 &&
+        isValidWorkerIdChunk10(list, 0) &&
+        isValidWorkerIdChunk10(list, 10) &&
+        isValidWorkerIdChunk10(list, 20) &&
+        isValidWorkerIdChunk10(list, 30) &&
+        isValidWorkerIdChunk10(list, 40);
+    }
+
+    // Deep array inspection for services.services (max 30 sub-service maps: {id, name, description})
+    function isValidSubServiceItem(list, idx) {
+      return idx >= list.size() || (
+        list[idx] is map &&
+        list[idx].keys().hasAll(['id', 'name', 'description']) &&
+        list[idx].keys().hasOnly(['id', 'name', 'description']) &&
+        isValidString(list[idx].id, 1, 80) &&
+        isValidString(list[idx].name, 1, 120) &&
+        isValidString(list[idx].description, 0, 500)
+      );
+    }
+
+    function isValidSubServiceChunk10(list, start) {
+      return start >= list.size() || (
+        isValidSubServiceItem(list, start) &&
+        isValidSubServiceItem(list, start + 1) &&
+        isValidSubServiceItem(list, start + 2) &&
+        isValidSubServiceItem(list, start + 3) &&
+        isValidSubServiceItem(list, start + 4) &&
+        isValidSubServiceItem(list, start + 5) &&
+        isValidSubServiceItem(list, start + 6) &&
+        isValidSubServiceItem(list, start + 7) &&
+        isValidSubServiceItem(list, start + 8) &&
+        isValidSubServiceItem(list, start + 9)
+      );
+    }
+
+    function isValidSubServicesList(list) {
+      return list is list &&
+        list.size() <= 30 &&
+        isValidSubServiceChunk10(list, 0) &&
+        isValidSubServiceChunk10(list, 10) &&
+        isValidSubServiceChunk10(list, 20);
     }
 
     // ===============================================================
@@ -248,6 +413,118 @@ service cloud.firestore {
         data.createdAt is timestamp;
     }
 
+    function isValidChantier(data) {
+      let requiredFields = [
+        'name', 'clientName', 'clientPhone', 'location', 'category',
+        'status', 'progress', 'budget', 'spent', 'startDate', 'endDate',
+        'assignedWorkerIds', 'notes', 'createdAt', 'updatedAt'
+      ];
+      return hasRequiredFields(requiredFields) &&
+        hasOnlyAllowedFields(requiredFields) &&
+        isValidString(data.name, 1, 150) &&
+        isValidString(data.clientName, 0, 120) &&
+        isValidString(data.clientPhone, 0, 30) &&
+        isValidString(data.location, 0, 150) &&
+        isValidString(data.category, 0, 100) &&
+        data.status in ['planifie', 'en_cours', 'en_pause', 'termine', 'annule'] &&
+        data.progress is int &&
+        data.progress >= 0 &&
+        data.progress <= 100 &&
+        isNonNegativeNumber(data.budget, 1000000000) &&
+        isNonNegativeNumber(data.spent, 1000000000) &&
+        isValidString(data.startDate, 0, 30) &&
+        isValidString(data.endDate, 0, 30) &&
+        isValidWorkerIdList(data.assignedWorkerIds) &&
+        isValidString(data.notes, 0, 2000) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp &&
+        data.updatedAt >= data.createdAt;
+    }
+
+    function isValidWorker(data) {
+      let requiredFields = [
+        'name', 'phone', 'cin', 'specialty', 'dailyRate',
+        'active', 'notes', 'createdAt', 'updatedAt'
+      ];
+      return hasRequiredFields(requiredFields) &&
+        hasOnlyAllowedFields(requiredFields) &&
+        isValidString(data.name, 1, 120) &&
+        isValidString(data.phone, 0, 30) &&
+        isValidString(data.cin, 0, 30) &&
+        isValidString(data.specialty, 1, 80) &&
+        isNonNegativeNumber(data.dailyRate, 1000000) &&
+        data.active is bool &&
+        isValidString(data.notes, 0, 1000) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp &&
+        data.updatedAt >= data.createdAt;
+    }
+
+    function isValidAttendance(data) {
+      let requiredFields = [
+        'date', 'workerId', 'workerName', 'chantierId', 'chantierName',
+        'status', 'dailyRate', 'amount', 'notes', 'updatedAt'
+      ];
+      return hasRequiredFields(requiredFields) &&
+        hasOnlyAllowedFields(requiredFields) &&
+        isValidIsoDateOnly(data.date) &&
+        isValidString(data.workerId, 1, 128) &&
+        isValidString(data.workerName, 1, 120) &&
+        isValidString(data.chantierId, 0, 128) &&
+        isValidString(data.chantierName, 0, 150) &&
+        data.status in ['present', 'demi_journee', 'absent', 'conge'] &&
+        isNonNegativeNumber(data.dailyRate, 1000000) &&
+        isNonNegativeNumber(data.amount, 1000000) &&
+        isValidString(data.notes, 0, 500) &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidExpense(data) {
+      let requiredFields = [
+        'chantierId', 'chantierName', 'category', 'description',
+        'amount', 'date', 'supplier', 'createdAt'
+      ];
+      return hasRequiredFields(requiredFields) &&
+        hasOnlyAllowedFields(requiredFields) &&
+        isValidString(data.chantierId, 0, 128) &&
+        isValidString(data.chantierName, 0, 150) &&
+        isValidString(data.category, 1, 80) &&
+        isValidString(data.description, 1, 300) &&
+        isNonNegativeNumber(data.amount, 1000000000) &&
+        isValidString(data.date, 0, 30) &&
+        isValidString(data.supplier, 0, 120) &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidService(data, serviceSlug) {
+      let requiredFields = [
+        'slug', 'title', 'badge', 'badgeColor', 'icon',
+        'coverImage', 'shortDescription', 'longDescription',
+        'services', 'updatedAt'
+      ];
+      let allowedFields = [
+        'slug', 'title', 'badge', 'badgeColor', 'icon',
+        'coverImage', 'shortDescription', 'longDescription',
+        'emergency', 'services', 'order', 'updatedAt'
+      ];
+      return hasRequiredFields(requiredFields) &&
+        hasOnlyAllowedFields(allowedFields) &&
+        isValidSlug(serviceSlug) &&
+        isValidSlug(data.slug) &&
+        data.slug == serviceSlug &&
+        isValidString(data.title, 1, 120) &&
+        isValidString(data.badge, 0, 80) &&
+        data.badgeColor in ['red', 'blue', 'green', 'yellow', 'purple', 'orange'] &&
+        isValidString(data.icon, 1, 40) &&
+        isValidImageUrl(data.coverImage) &&
+        isValidString(data.shortDescription, 0, 500) &&
+        isValidString(data.longDescription, 0, 2000) &&
+        (!('emergency' in data) || data.emergency is bool) &&
+        isValidSubServicesList(data.services) &&
+        (!('order' in data) || (data.order is int && data.order >= 0 && data.order <= 1000)) &&
+        data.updatedAt is timestamp;
+    }
+
     // ===============================================================
     // Collection Rules
     // ===============================================================
@@ -290,6 +567,72 @@ service cloud.firestore {
       allow update: if isAdmin() &&
         isValidTestimonial(request.resource.data) &&
         areImmutableFieldsUnchanged(['createdAt']);
+      allow delete: if isAdmin();
+    }
+
+    // 4. Chantiers / Construction Sites (PRIVATE — contains client PII & budgets)
+    match /chantiers/{chantierId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() &&
+        isValidChantier(request.resource.data) &&
+        isRecent(request.resource.data.createdAt) &&
+        isRecent(request.resource.data.updatedAt);
+      allow update: if isAdmin() &&
+        isValidChantier(request.resource.data) &&
+        areImmutableFieldsUnchanged(['createdAt']) &&
+        isRecent(request.resource.data.updatedAt);
+      allow delete: if isAdmin();
+    }
+
+    // 5. Workers / Ouvriers (PRIVATE — contains PII: phone, CIN, pay rates)
+    match /workers/{workerId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() &&
+        isValidWorker(request.resource.data) &&
+        isRecent(request.resource.data.createdAt) &&
+        isRecent(request.resource.data.updatedAt);
+      allow update: if isAdmin() &&
+        isValidWorker(request.resource.data) &&
+        areImmutableFieldsUnchanged(['createdAt']) &&
+        isRecent(request.resource.data.updatedAt);
+      allow delete: if isAdmin();
+    }
+
+    // 6. Attendance / Pointage (PRIVATE — worker attendance & daily payroll)
+    match /attendance/{attendanceId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() &&
+        isValidAttendance(request.resource.data) &&
+        isRecent(request.resource.data.updatedAt);
+      allow update: if isAdmin() &&
+        isValidAttendance(request.resource.data) &&
+        areImmutableFieldsUnchanged(['date', 'workerId']) &&
+        isRecent(request.resource.data.updatedAt);
+      allow delete: if isAdmin();
+    }
+
+    // 7. Expenses / Dépenses (PRIVATE — site costs & suppliers)
+    match /expenses/{expenseId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() &&
+        isValidExpense(request.resource.data) &&
+        isRecent(request.resource.data.createdAt);
+      allow update: if isAdmin() &&
+        isValidExpense(request.resource.data) &&
+        areImmutableFieldsUnchanged(['createdAt']);
+      allow delete: if isAdmin();
+    }
+
+    // 8. Services Catalog (PUBLIC READ, ADMIN-ONLY WRITE)
+    match /services/{serviceSlug} {
+      allow read: if true;
+      allow create: if isAdmin() &&
+        isValidService(request.resource.data, serviceSlug) &&
+        isRecent(request.resource.data.updatedAt);
+      allow update: if isAdmin() &&
+        isValidService(request.resource.data, serviceSlug) &&
+        areImmutableFieldsUnchanged(['slug']) &&
+        isRecent(request.resource.data.updatedAt);
       allow delete: if isAdmin();
     }
 

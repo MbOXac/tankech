@@ -38,7 +38,28 @@ function getAdminApp(): App | null {
 export function getAdminDb(): Firestore | null {
   const app = getAdminApp();
   if (!app) return null;
-  return getFirestore(app);
+  const databaseId = process.env.FIREBASE_DATABASE_ID?.trim();
+  return databaseId ? getFirestore(app, databaseId) : getFirestore(app);
+}
+
+export function formatFirestoreError(err: unknown, fallback: string): string {
+  const e = err as { code?: number | string; message?: string };
+  const msg = String(e?.message ?? "");
+  if (
+    e?.code === 5 ||
+    msg.includes("NOT_FOUND") ||
+    msg.includes("does not exist")
+  ) {
+    return "Base de données Firestore introuvable : ouvrez Firebase Console → Firestore Database → Créer une base de données (mode Production, ID '(default)').";
+  }
+  if (
+    e?.code === 7 ||
+    msg.includes("PERMISSION_DENIED") ||
+    msg.includes("Cloud Firestore API")
+  ) {
+    return "Accès Firestore refusé ou API Cloud Firestore non activée dans Firebase Console.";
+  }
+  return fallback;
 }
 
 export function getAdminAuth(): Auth | null {
@@ -74,7 +95,7 @@ export async function verifyAdminRequest(
   }
 
   try {
-    const decoded = await auth.verifyIdToken(token);
+    const decoded = await auth.verifyIdToken(token, true);
     const email = (decoded.email ?? "").toLowerCase();
 
     const allowedEmails = (process.env.ADMIN_EMAILS ?? "")

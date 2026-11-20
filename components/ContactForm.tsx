@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { whatsappLink } from "@/data/siteConfig";
-import { servicesData } from "@/data/servicesData";
+import { servicesData, type ServiceCategory } from "@/data/servicesData";
 import { Send, Loader2, Check, MessageCircle, AlertCircle } from "lucide-react";
 
 const initialForm = {
@@ -21,7 +21,13 @@ interface SubmitResult {
   emailSent: boolean;
 }
 
-export default function ContactForm() {
+interface ContactFormProps {
+  services?: ServiceCategory[];
+}
+
+export default function ContactForm({
+  services = servicesData,
+}: ContactFormProps) {
   const [form, setForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -201,7 +207,7 @@ Je souhaite demander un devis :
           className="rounded-lg border border-gray-200 px-4 py-3 text-sm focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-100 text-gray-600"
         >
           <option value="">Sélectionnez un service</option>
-          {servicesData.map((s) => (
+          {services.map((s) => (
             <option key={s.slug} value={s.title}>
               {s.title}
             </option>

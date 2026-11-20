@@ -39,7 +39,13 @@ const badgeIconMap: Record<string, React.ElementType> = {
   yellow: Clock,
 };
 
-export default function ServicesGrid() {
+interface ServicesGridProps {
+  services?: ServiceCategory[];
+}
+
+export default function ServicesGrid({
+  services = servicesData,
+}: ServicesGridProps) {
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -48,11 +54,11 @@ export default function ServicesGrid() {
 
   const tabs = [
     { id: "all", label: "Tous" },
-    ...servicesData.map((s) => ({ id: s.slug, label: s.title })),
+    ...services.map((s) => ({ id: s.slug, label: s.title })),
   ];
 
   const filtered = useMemo(() => {
-    let data = servicesData;
+    let data = services;
     if (activeTab !== "all") {
       data = data.filter((s) => s.slug === activeTab);
     }
@@ -70,7 +76,7 @@ export default function ServicesGrid() {
         .filter((cat) => cat.services.length > 0);
     }
     return data;
-  }, [activeTab, search]);
+  }, [activeTab, search, services]);
 
   const openModal = (cat: ServiceCategory) => {
     setSelectedCategory(cat);

@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import ServicesGrid from "@/components/ServicesGrid";
 import ScrollReveal from "@/components/ScrollReveal";
-import { servicesData } from "@/data/servicesData";
+import { getPublicServices } from "@/lib/content";
 import FallbackImage from "@/components/FallbackImage";
 import { whatsappLink } from "@/data/siteConfig";
 import {
@@ -30,7 +30,11 @@ const iconMap: Record<string, React.ElementType> = {
   Wrench,
 };
 
-export default function ServicesPage() {
+export const revalidate = 60;
+
+export default async function ServicesPage() {
+  const services = await getPublicServices();
+
   return (
     <>
       {/* Hero */}
@@ -41,7 +45,7 @@ export default function ServicesPage() {
             Nos Services
           </span>
           <h1 className="text-4xl md:text-6xl font-black text-white">
-            6 domaines d&apos;expertise, <br className="hidden md:block" />
+            {services.length} domaines d&apos;expertise, <br className="hidden md:block" />
             <span className="text-yellow-400">un seul interlocuteur</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-white/60">
@@ -56,7 +60,7 @@ export default function ServicesPage() {
       <section className="bg-gray-50 border-b border-gray-100">
         <div className="mx-auto max-w-7xl px-4">
           <div className="flex overflow-x-auto gap-2 py-4 scrollbar-hide">
-            {servicesData.map((s) => {
+            {services.map((s) => {
               const Icon = iconMap[s.icon] ?? Building2;
               return (
                 <a
@@ -74,10 +78,10 @@ export default function ServicesPage() {
       </section>
 
       {/* Interactive services grid */}
-      <ServicesGrid />
+      <ServicesGrid services={services} />
 
       {/* Detailed sections per category */}
-      {servicesData.map((cat, i) => {
+      {services.map((cat, i) => {
         const Icon = iconMap[cat.icon] ?? Building2;
         const isEven = i % 2 === 0;
 

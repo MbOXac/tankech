@@ -10,6 +10,16 @@ const rateBuckets = new Map<string, number[]>();
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
+  if (rateBuckets.size > 500) {
+    for (const [key, list] of rateBuckets.entries()) {
+      const fresh = list.filter((ts) => now - ts < RATE_LIMIT_WINDOW_MS);
+      if (fresh.length === 0) {
+        rateBuckets.delete(key);
+      } else {
+        rateBuckets.set(key, fresh);
+      }
+    }
+  }
   const timestamps = (rateBuckets.get(ip) ?? []).filter(
     (ts) => now - ts < RATE_LIMIT_WINDOW_MS
   );

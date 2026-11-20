@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { siteConfig, whatsappLink } from "@/data/siteConfig";
+import { getPublicServices } from "@/lib/content";
 import ScrollReveal from "@/components/ScrollReveal";
 import ContactForm from "@/components/ContactForm";
 import {
@@ -17,7 +18,11 @@ export const metadata: Metadata = {
     "Contactez TANKECH à Tanger pour un devis gratuit en construction, rénovation, plomberie, électricité ou peinture. Urgence 24/7.",
 };
 
-export default function ContactPage() {
+export const revalidate = 60;
+
+export default async function ContactPage() {
+  const services = await getPublicServices();
+
   return (
     <>
       {/* Hero */}
@@ -164,7 +169,7 @@ export default function ContactPage() {
             <div className="lg:col-span-3">
               <ScrollReveal delay={100}>
                 <div className="rounded-2xl bg-white border border-gray-100 shadow-lg p-8 md:p-10">
-                  <ContactForm />
+                  <ContactForm services={services} />
                 </div>
               </ScrollReveal>
             </div>
