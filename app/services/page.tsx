@@ -11,6 +11,7 @@ import {
   Zap,
   Paintbrush,
   Wrench,
+  Layers,
   ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
@@ -28,6 +29,7 @@ const iconMap: Record<string, React.ElementType> = {
   Zap,
   Paintbrush,
   Wrench,
+  Layers,
 };
 
 export const revalidate = 60;
@@ -132,6 +134,8 @@ export default async function ServicesPage() {
                           ? "bg-emerald-600"
                           : cat.badgeColor === "purple"
                           ? "bg-purple-700"
+                          : cat.badgeColor === "yellow"
+                          ? "bg-amber-600"
                           : "bg-orange-500"
                       }`}
                     >

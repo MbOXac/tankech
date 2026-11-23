@@ -14,6 +14,14 @@ function slugify(value: string): string {
     .slice(0, 60);
 }
 
+function sanitizeImageUrl(raw: string | undefined, fallback: string): string {
+  const url = (raw ?? "").trim().slice(0, 500);
+  if (!url || url.includes("..")) return fallback;
+  if (url.startsWith("https://")) return url;
+  if (!url.startsWith("//") && /^\/[a-zA-Z0-9._/-]+$/.test(url)) return url;
+  return fallback;
+}
+
 export async function GET(request: NextRequest) {
   const authResult = await verifyAdminRequest(request);
   if ("error" in authResult) {
@@ -32,7 +40,24 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const snap = await db.collection("services").orderBy("order", "asc").get();
+    let snap = await db.collection("services").orderBy("order", "asc").get();
+
+    // Auto-seed all default company services into Firestore on first admin visit
+    if (snap.empty) {
+      const batch = db.batch();
+      servicesData.forEach((cat, idx) => {
+        const ref = db.collection("services").doc(cat.slug);
+        batch.set(ref, {
+          ...cat,
+          emergency: Boolean(cat.emergency),
+          order: idx,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      });
+      await batch.commit();
+      snap = await db.collection("services").orderBy("order", "asc").get();
+    }
+
     const services: ServiceCategory[] = snap.docs.map((doc) => {
       const d = doc.data();
       return {
@@ -59,14 +84,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function sanitizeImageUrl(raw: string | undefined, fallback: string): string {
-  const url = (raw ?? "").trim().slice(0, 500);
-  if (!url || url.includes("..")) return fallback;
-  if (url.startsWith("https://")) return url;
-  if (!url.startsWith("//") && /^\/[a-zA-Z0-9._/-]+$/.test(url)) return url;
-  return fallback;
-}
-
 export async function POST(request: NextRequest) {
   const authResult = await verifyAdminRequest(request);
   if ("error" in authResult) {
@@ -90,21 +107,32 @@ export async function POST(request: NextRequest) {
     };
 
     if (body.seedDefaults) {
+      // Only add missing default categories so existing custom edits are preserved
+      const existingSnap = await db.collection("services").get();
+      const existingSlugs = new Set(existingSnap.docs.map((d) => d.id));
       const batch = db.batch();
+      let added = 0;
+
       servicesData.forEach((cat, idx) => {
-        const ref = db.collection("services").doc(cat.slug);
-        batch.set(ref, {
-          ...cat,
-          emergency: Boolean(cat.emergency),
-          order: idx,
-          updatedAt: FieldValue.serverTimestamp(),
-        });
+        if (!existingSlugs.has(cat.slug)) {
+          const ref = db.collection("services").doc(cat.slug);
+          batch.set(ref, {
+            ...cat,
+            emergency: Boolean(cat.emergency),
+            order: existingSnap.size + added || idx,
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+          added++;
+        }
       });
-      await batch.commit();
-      revalidatePath("/");
-      revalidatePath("/services");
-      revalidatePath("/contact");
-      return NextResponse.json({ ok: true, seeded: servicesData.length });
+
+      if (added > 0) {
+        await batch.commit();
+        revalidatePath("/");
+        revalidatePath("/services");
+        revalidatePath("/contact");
+      }
+      return NextResponse.json({ ok: true, added });
     }
 
     const title = String(body.title ?? "").trim().slice(0, 120);
@@ -117,6 +145,17 @@ export async function POST(request: NextRequest) {
 
     const slug = slugify(body.slug || title) || `service-${Date.now()}`;
     const existingSnap = await db.collection("services").get();
+
+    const cleanedSubServices = Array.isArray(body.services)
+      ? body.services
+          .filter((s) => s && typeof s.name === "string" && s.name.trim())
+          .map((s, idx) => ({
+            id: String(s.id || `sub-${Date.now()}-${idx}`).slice(0, 80),
+            name: s.name.trim().slice(0, 120),
+            description: String(s.description ?? "").trim().slice(0, 300),
+          }))
+          .slice(0, 30)
+      : [];
 
     await db
       .collection("services")
@@ -137,7 +176,7 @@ export async function POST(request: NextRequest) {
           .trim()
           .slice(0, 2000),
         emergency: Boolean(body.emergency),
-        services: Array.isArray(body.services) ? body.services : [],
+        services: cleanedSubServices,
         order: existingSnap.size,
         updatedAt: FieldValue.serverTimestamp(),
       });

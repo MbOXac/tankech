@@ -329,6 +329,62 @@ export const servicesData: ServiceCategory[] = [
       },
     ],
   },
+  {
+    slug: "epoxy",
+    title: "Résine Époxy",
+    badge: "Haute Résistance",
+    badgeColor: "yellow",
+    icon: "Layers",
+    coverImage: "/services/renovation.jpg", // Remplacez par "/services/epoxy.jpg" dès que vous ajoutez votre photo époxy
+    shortDescription:
+      "Revêtements de sols en résine époxy — décoratif, métallisé, 3D, garages, parkings et sols industriels haute résistance.",
+    longDescription:
+      "Nos applicateurs qualifiés réalisent tous types de revêtements en résine époxy à Tanger et dans le Nord du Maroc : sols décoratifs métallisés ou 3D pour villas et showrooms, sols industriels autolissants pour usines et entrepôts, et revêtements antidérapants pour parkings et garages. Préparation professionnelle du béton et finition durable garantie.",
+    services: [
+      {
+        id: "epoxy-decoratif-metallise",
+        name: "Époxy Décoratif & Métallisé",
+        description:
+          "Effets marbrés, nacrés et brillants sur mesure pour villas, salons, bureaux et showrooms.",
+      },
+      {
+        id: "epoxy-3d",
+        name: "Sol Époxy 3D",
+        description:
+          "Revêtements visuels 3D haute résistance pour salles de bain, halls et espaces commerciaux.",
+      },
+      {
+        id: "epoxy-industriel",
+        name: "Époxy Autolissant Industriel",
+        description:
+          "Sols lisses sans joints résistants aux charges lourdes et produits chimiques (usines, entrepôts).",
+      },
+      {
+        id: "epoxy-garages-parkings",
+        name: "Époxy Garages & Parkings",
+        description:
+          "Revêtement robuste résistant aux huiles, pneus et passages intensifs de véhicules.",
+      },
+      {
+        id: "epoxy-quartze-antiderapant",
+        name: "Époxy Quartzé & Antidérapant",
+        description:
+          "Sols antidérapants sécurisés pour cuisines professionnelles, rampes et zones humides.",
+      },
+      {
+        id: "epoxy-preparation-beton",
+        name: "Préparation & Ponçage Béton",
+        description:
+          "Ponçage mécanique, rebouchage des fissures et application de primaire d'accrochage.",
+      },
+      {
+        id: "epoxy-vernis-marquage",
+        name: "Vernis Protecteur & Marquage",
+        description:
+          "Vernis polyuréthane mat/brillant (anti-UV, anti-rayures) et marquage au sol.",
+      },
+    ],
+  },
 ];
 
 // Helper — get category by slug

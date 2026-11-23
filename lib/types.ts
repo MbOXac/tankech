@@ -83,6 +83,7 @@ export const WORKER_SPECIALTIES = [
   "Plombier",
   "Électricien",
   "Peintre / Tadelakt",
+  "Applicateur Époxy",
   "Carreleur",
   "Menuisier",
   "Ferrailleur",

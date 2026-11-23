@@ -7,7 +7,7 @@ import {
   type QuoteStatus,
 } from "@/lib/types";
 import type { ServiceCategory } from "@/data/servicesData";
-import { whatsappLink } from "@/data/siteConfig";
+import { telLinkForPhone, whatsappLinkForPhone } from "@/data/siteConfig";
 import { exportQuotesToExcel } from "@/lib/exportExcel";
 import DevisGeneratorModal from "@/components/admin/DevisGeneratorModal";
 import {
@@ -526,7 +526,7 @@ export default function AdminQuotes({
                   {/* Structured Client Info Grid */}
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <a
-                      href={`tel:${q.phone}`}
+                      href={telLinkForPhone(q.phone)}
                       className="flex items-center gap-2.5 rounded-xl bg-gray-50/80 border border-gray-100 px-3.5 py-2.5 hover:border-yellow-300 hover:bg-yellow-50/40 transition"
                     >
                       <Phone className="h-4 w-4 text-yellow-600 shrink-0" />
@@ -611,13 +611,14 @@ export default function AdminQuotes({
                   {/* Quick Actions Row */}
                   <div className="flex flex-wrap items-center gap-2">
                     <a
-                      href={`tel:${q.phone}`}
+                      href={telLinkForPhone(q.phone)}
                       className="inline-flex items-center gap-1.5 rounded-xl bg-gray-900 px-3.5 py-2 text-xs font-bold text-white hover:bg-gray-800 transition"
                     >
                       <Phone className="h-3.5 w-3.5" /> Appeler
                     </a>
                     <a
-                      href={whatsappLink(
+                      href={whatsappLinkForPhone(
+                        q.phone,
                         `Bonjour ${q.name}, merci pour votre demande de devis chez TANKECH.`
                       )}
                       target="_blank"
@@ -628,7 +629,7 @@ export default function AdminQuotes({
                     </a>
                     {q.email && (
                       <a
-                        href={`mailto:${q.email}`}
+                        href={`mailto:${q.email}?subject=${encodeURIComponent(`Votre devis TANKECH — ${q.category || "Projet"}`)}`}
                         className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition"
                       >
                         <Mail className="h-3.5 w-3.5" /> Email

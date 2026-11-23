@@ -9,7 +9,7 @@ import {
   type ChantierRecord,
   type WorkerRecord,
 } from "@/lib/types";
-import { whatsappLink } from "@/data/siteConfig";
+import { telLinkForPhone, whatsappLinkForPhone } from "@/data/siteConfig";
 import {
   Plus,
   Users,
@@ -605,15 +605,19 @@ export default function AdminWorkersAttendance({
                     {w.phone && (
                       <>
                         <a
-                          href={`tel:${w.phone}`}
+                          href={telLinkForPhone(w.phone)}
                           className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-yellow-100"
                         >
                           <Phone className="h-3.5 w-3.5" /> {w.phone}
                         </a>
                         <a
-                          href={whatsappLink(`Bonjour ${w.name},`)}
+                          href={whatsappLinkForPhone(
+                            w.phone,
+                            `Bonjour ${w.name},`
+                          )}
                           target="_blank"
                           rel="noopener noreferrer"
+                          aria-label={`Contacter ${w.name} sur WhatsApp`}
                           className="inline-flex items-center gap-1 rounded-lg bg-[#25D366] px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-green-600"
                         >
                           <MessageCircle className="h-3.5 w-3.5" />

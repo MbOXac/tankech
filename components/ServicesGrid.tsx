@@ -12,6 +12,7 @@ import {
   Zap,
   Paintbrush,
   Wrench,
+  Layers,
   Search,
   Check,
   ArrowRight,
@@ -28,6 +29,7 @@ const iconMap: Record<string, React.ElementType> = {
   Zap,
   Paintbrush,
   Wrench,
+  Layers,
 };
 
 const badgeIconMap: Record<string, React.ElementType> = {
@@ -36,7 +38,7 @@ const badgeIconMap: Record<string, React.ElementType> = {
   green: Award,
   purple: Award,
   orange: Clock,
-  yellow: Clock,
+  yellow: Shield,
 };
 
 interface ServicesGridProps {
@@ -164,6 +166,8 @@ export default function ServicesGrid({
                           ? "bg-emerald-600"
                           : cat.badgeColor === "purple"
                           ? "bg-purple-700"
+                          : cat.badgeColor === "yellow"
+                          ? "bg-amber-600"
                           : "bg-orange-500"
                       }`}
                     >

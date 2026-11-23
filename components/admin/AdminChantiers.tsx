@@ -8,10 +8,12 @@ import {
   type WorkerRecord,
 } from "@/lib/types";
 import type { ServiceCategory } from "@/data/servicesData";
+import { telLinkForPhone, whatsappLinkForPhone } from "@/data/siteConfig";
 import {
   Plus,
   MapPin,
   Phone,
+  MessageCircle,
   Calendar,
   Trash2,
   Users,
@@ -354,12 +356,26 @@ export default function AdminChantiers({
                       <span>{c.category}</span>
                       {c.clientName && <span>Client : {c.clientName}</span>}
                       {c.clientPhone && (
-                        <a
-                          href={`tel:${c.clientPhone}`}
-                          className="inline-flex items-center gap-1 text-yellow-700 font-semibold hover:underline"
-                        >
-                          <Phone className="h-3 w-3" /> {c.clientPhone}
-                        </a>
+                        <>
+                          <a
+                            href={telLinkForPhone(c.clientPhone)}
+                            className="inline-flex items-center gap-1 text-yellow-700 font-semibold hover:underline"
+                          >
+                            <Phone className="h-3 w-3" /> {c.clientPhone}
+                          </a>
+                          <a
+                            href={whatsappLinkForPhone(
+                              c.clientPhone,
+                              `Bonjour ${c.clientName || ""}, concernant votre chantier ${c.name} :`
+                            )}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Contacter ${c.clientName || "le client"} sur WhatsApp`}
+                            className="inline-flex items-center gap-1 text-emerald-600 font-semibold hover:underline"
+                          >
+                            <MessageCircle className="h-3 w-3" /> WhatsApp
+                          </a>
+                        </>
                       )}
                     </div>
                   </div>

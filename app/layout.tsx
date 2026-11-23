@@ -19,6 +19,8 @@ export const metadata: Metadata = {
     "plomberie Tanger",
     "électricité Tanger",
     "peinture tadelakt",
+    "résine époxy Tanger",
+    "sol époxy Maroc",
     "aménagement Tanger",
     "gros œuvre Maroc",
     "devis construction",
