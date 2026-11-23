@@ -175,7 +175,9 @@ export default function AdminDashboard() {
         error?: string;
       };
       return {
-        error: body.error || "Accès refusé ou erreur serveur.",
+        error:
+          body.error ||
+          `Erreur serveur (HTTP ${qRes.status}). Vérifiez les variables d'environnement Vercel.`,
       };
     }
 

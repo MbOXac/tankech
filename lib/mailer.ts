@@ -10,8 +10,22 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+function cleanEnv(val: string | undefined): string {
+  if (!val) return "";
+  const s = val.trim();
+  if (
+    (s.startsWith('"') && s.endsWith('"')) ||
+    (s.startsWith("'") && s.endsWith("'"))
+  ) {
+    return s.slice(1, -1).trim();
+  }
+  return s;
+}
+
 export function isMailerConfigured(): boolean {
-  return Boolean(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
+  return Boolean(
+    cleanEnv(process.env.GMAIL_USER) && cleanEnv(process.env.GMAIL_APP_PASSWORD)
+  );
 }
 
 export interface QuoteEmailInput {
@@ -31,9 +45,10 @@ export async function sendQuoteEmail(quote: QuoteEmailInput): Promise<boolean> {
     return false;
   }
 
-  const user = process.env.GMAIL_USER!;
-  const pass = process.env.GMAIL_APP_PASSWORD!;
-  const to = process.env.QUOTE_NOTIFICATION_EMAIL || siteConfig.email || user;
+  const user = cleanEnv(process.env.GMAIL_USER);
+  const pass = cleanEnv(process.env.GMAIL_APP_PASSWORD);
+  const to =
+    cleanEnv(process.env.QUOTE_NOTIFICATION_EMAIL) || siteConfig.email || user;
 
   const transporter = nodemailer.createTransport({
     service: "gmail",
