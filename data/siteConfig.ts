@@ -13,6 +13,7 @@ export const siteConfig = {
   address: "Tanger, Maroc",
 
   // ---- Media ----
+  logo: "/logo.png",
   heroVideo: "", // Placez votre vidéo dans public/hero-video.mp4 puis indiquez "/hero-video.mp4"
 
   // ---- Social ----

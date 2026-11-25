@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { servicesData, type ServiceCategory } from "@/data/servicesData";
+import ImageUploader from "@/components/admin/ImageUploader";
 import {
   Plus,
   Trash2,
@@ -332,14 +333,14 @@ export default function AdminServices({
               ))}
             </select>
           </div>
-          <input
-            type="text"
-            placeholder="Image de couverture (ex: /services/renovation.jpg)"
+          <ImageUploader
+            label="Photo de couverture"
             value={newCat.coverImage}
-            onChange={(e) =>
-              setNewCat({ ...newCat, coverImage: e.target.value })
-            }
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:border-yellow-400 focus:outline-none"
+            onChange={(url) => setNewCat({ ...newCat, coverImage: url })}
+            folder="tankech/services"
+            authFetch={authFetch}
+            placeholder="/services/renovation.jpg"
+            compact
           />
           <textarea
             rows={2}
@@ -471,17 +472,18 @@ export default function AdminServices({
                           ))}
                         </select>
                       </div>
-                      <input
-                        type="text"
+                      <ImageUploader
+                        label="Photo de couverture"
                         value={editDraft.coverImage}
-                        onChange={(e) =>
+                        onChange={(url) =>
                           setEditDraft({
                             ...editDraft,
-                            coverImage: e.target.value,
+                            coverImage: url,
                           })
                         }
-                        placeholder="Image de couverture"
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs"
+                        folder="tankech/services"
+                        authFetch={authFetch}
+                        compact
                       />
                       <textarea
                         rows={2}

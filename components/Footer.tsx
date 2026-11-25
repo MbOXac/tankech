@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { siteConfig, whatsappLink } from "@/data/siteConfig";
 import { servicesData } from "@/data/servicesData";
+import BrochureButton from "@/components/BrochureButton";
 import {
   Phone,
   Mail,
@@ -81,8 +83,19 @@ export default function Footer() {
         <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
           {/* Company */}
           <div>
-            <h4 className="text-2xl font-black tracking-tight">TANKECH</h4>
-            <p className="mt-3 text-sm text-white/50 leading-relaxed">
+            <Link
+              href="/"
+              className="inline-flex items-center rounded-xl bg-white px-3 py-2 shadow-sm"
+            >
+              <Image
+                src={siteConfig.logo}
+                alt={`${siteConfig.name} — ${siteConfig.tagline}`}
+                width={96}
+                height={82}
+                className="h-12 w-auto object-contain"
+              />
+            </Link>
+            <p className="mt-4 text-sm text-white/50 leading-relaxed">
               {siteConfig.description}
             </p>
             {/* Social */}
@@ -132,7 +145,7 @@ export default function Footer() {
               {servicesData.map((s) => (
                 <li key={s.slug}>
                   <Link
-                    href={`/services#${s.slug}`}
+                    href={`/services/${s.slug}`}
                     className="text-sm text-white/50 hover:text-yellow-400 transition"
                   >
                     {s.title}
@@ -167,6 +180,14 @@ export default function Footer() {
                 <Link href="/contact" className="text-sm text-white/50 hover:text-yellow-400 transition">
                   Contact & Devis
                 </Link>
+              </li>
+              <li>
+                <Link href="/#simulateur" className="text-sm text-white/50 hover:text-yellow-400 transition">
+                  Simulateur de Budget
+                </Link>
+              </li>
+              <li>
+                <BrochureButton variant="footer" />
               </li>
             </ul>
           </div>

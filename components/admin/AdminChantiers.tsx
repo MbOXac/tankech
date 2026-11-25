@@ -3,12 +3,14 @@
 import { useState } from "react";
 import {
   CHANTIER_STATUS_LABELS,
+  type ChantierPhoto,
   type ChantierRecord,
   type ChantierStatus,
   type WorkerRecord,
 } from "@/lib/types";
 import type { ServiceCategory } from "@/data/servicesData";
 import { telLinkForPhone, whatsappLinkForPhone } from "@/data/siteConfig";
+import ImageUploader from "@/components/admin/ImageUploader";
 import {
   Plus,
   MapPin,
@@ -21,7 +23,21 @@ import {
   HardHat,
   Save,
   X,
+  Camera,
+  Link2,
+  Copy,
+  Check,
+  RefreshCw,
+  ShieldCheck,
 } from "lucide-react";
+
+const PHOTO_STAGES = [
+  "Début / État initial",
+  "Fondations / Gros œuvre",
+  "Second œuvre",
+  "Finitions",
+  "Livraison finale",
+] as const;
 
 interface Props {
   chantiers: ChantierRecord[];
@@ -68,7 +84,12 @@ export default function AdminChantiers({
   const [expandedWorkersId, setExpandedWorkersId] = useState<string | null>(
     null
   );
+  const [expandedPhotosId, setExpandedPhotosId] = useState<string | null>(null);
+  const [photoDrafts, setPhotoDrafts] = useState<
+    Record<string, { url: string; stage: string; caption: string }>
+  >({});
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,6 +139,69 @@ export default function AdminChantiers({
       ? chantier.assignedWorkerIds.filter((w) => w !== workerId)
       : [...chantier.assignedWorkerIds, workerId];
     await updateChantier(chantier.id, { assignedWorkerIds: nextIds });
+  };
+
+  const addChantierPhoto = async (chantier: ChantierRecord) => {
+    const draft = photoDrafts[chantier.id];
+    if (!draft?.url?.trim()) return;
+    const nextPhoto: ChantierPhoto = {
+      id: `photo-${Date.now()}`,
+      url: draft.url.trim(),
+      stage: draft.stage || PHOTO_STAGES[0],
+      caption: draft.caption.trim(),
+      date: new Date().toISOString().slice(0, 10),
+    };
+    const nextPhotos = [...(chantier.photos ?? []), nextPhoto];
+    await updateChantier(chantier.id, { photos: nextPhotos });
+    setPhotoDrafts((prev) => ({
+      ...prev,
+      [chantier.id]: { url: "", stage: PHOTO_STAGES[0], caption: "" },
+    }));
+  };
+
+  const removeChantierPhoto = async (
+    chantier: ChantierRecord,
+    photoId: string
+  ) => {
+    const nextPhotos = (chantier.photos ?? []).filter((p) => p.id !== photoId);
+    await updateChantier(chantier.id, { photos: nextPhotos });
+  };
+
+  const toggleTracking = async (chantier: ChantierRecord) => {
+    await authFetch(`/api/admin/chantiers/${chantier.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ trackingEnabled: !chantier.trackingEnabled }),
+    });
+    await onRefresh();
+  };
+
+  const regenerateTracking = async (chantier: ChantierRecord) => {
+    if (
+      !window.confirm(
+        "Générer un nouveau lien et un nouveau code PIN ? L'ancien lien cessera immédiatement de fonctionner."
+      )
+    ) {
+      return;
+    }
+    await authFetch(`/api/admin/chantiers/${chantier.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ regenerateTracking: true }),
+    });
+    await onRefresh();
+  };
+
+  const getTrackingUrl = (code: string) => {
+    if (typeof window === "undefined") return `/suivi/${code}`;
+    return `${window.location.origin}/suivi/${code}`;
+  };
+
+  const copyTrackingAccess = async (chantier: ChantierRecord) => {
+    if (!chantier.trackingCode) return;
+    const url = getTrackingUrl(chantier.trackingCode);
+    const text = `Suivi privé de votre chantier « ${chantier.name} » (TANKECH) :\nLien : ${url}\nCode PIN : ${chantier.trackingPin ?? ""}`;
+    await navigator.clipboard.writeText(text);
+    setCopiedId(chantier.id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const filtered = chantiers.filter((c) => {
@@ -532,6 +616,202 @@ export default function AdminChantiers({
                           </label>
                         ))
                       )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Photos du chantier */}
+                <div className="border-t border-gray-100 pt-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-600 flex items-center gap-1.5">
+                      <Camera className="h-3.5 w-3.5 text-yellow-600" />
+                      Photos d&apos;avancement ({(c.photos ?? []).length})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedPhotosId(
+                          expandedPhotosId === c.id ? null : c.id
+                        )
+                      }
+                      className="text-xs font-semibold text-yellow-700 hover:underline"
+                    >
+                      {expandedPhotosId === c.id ? "Fermer" : "Gérer les photos"}
+                    </button>
+                  </div>
+
+                  {(c.photos ?? []).length > 0 && (
+                    <div className="mt-2.5 grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {(c.photos ?? []).map((photo) => (
+                        <div
+                          key={photo.id}
+                          className="group relative aspect-[4/3] overflow-hidden rounded-lg border border-gray-200 bg-gray-100"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={photo.url}
+                            alt={photo.caption || photo.stage || c.name}
+                            className="h-full w-full object-cover"
+                          />
+                          {photo.stage && (
+                            <span className="absolute bottom-1 left-1 right-1 truncate rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                              {photo.stage}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeChantierPhoto(c, photo.id)}
+                            aria-label="Supprimer cette photo"
+                            className="absolute top-1 right-1 rounded-full bg-black/70 p-1 text-white opacity-0 group-hover:opacity-100 hover:bg-red-600 transition"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {expandedPhotosId === c.id && (
+                    <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50/80 p-3.5 space-y-3">
+                      <ImageUploader
+                        label="Ajouter une photo du chantier"
+                        value={photoDrafts[c.id]?.url ?? ""}
+                        onChange={(url) =>
+                          setPhotoDrafts((prev) => ({
+                            ...prev,
+                            [c.id]: {
+                              url,
+                              stage: prev[c.id]?.stage || PHOTO_STAGES[0],
+                              caption: prev[c.id]?.caption ?? "",
+                            },
+                          }))
+                        }
+                        folder="tankech/chantiers"
+                        authFetch={authFetch}
+                        compact
+                      />
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <select
+                          aria-label="Étape du chantier"
+                          value={photoDrafts[c.id]?.stage ?? PHOTO_STAGES[0]}
+                          onChange={(e) =>
+                            setPhotoDrafts((prev) => ({
+                              ...prev,
+                              [c.id]: {
+                                url: prev[c.id]?.url ?? "",
+                                stage: e.target.value,
+                                caption: prev[c.id]?.caption ?? "",
+                              },
+                            }))
+                          }
+                          className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs"
+                        >
+                          {PHOTO_STAGES.map((st) => (
+                            <option key={st} value={st}>
+                              {st}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          placeholder="Légende (optionnel)"
+                          value={photoDrafts[c.id]?.caption ?? ""}
+                          onChange={(e) =>
+                            setPhotoDrafts((prev) => ({
+                              ...prev,
+                              [c.id]: {
+                                url: prev[c.id]?.url ?? "",
+                                stage: prev[c.id]?.stage || PHOTO_STAGES[0],
+                                caption: e.target.value,
+                              },
+                            }))
+                          }
+                          className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        disabled={!photoDrafts[c.id]?.url?.trim()}
+                        onClick={() => addChantierPhoto(c)}
+                        className="w-full rounded-lg bg-gray-900 py-2 text-xs font-bold text-white hover:bg-yellow-500 hover:text-gray-900 transition disabled:opacity-40"
+                      >
+                        Enregistrer la photo dans le chantier
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Suivi Client Privé (Lien + PIN 4 chiffres) */}
+                <div className="border-t border-gray-100 pt-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-gray-600 flex items-center gap-1.5">
+                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                      Suivi Client Privé (Lien + PIN)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => toggleTracking(c)}
+                      className={`rounded-full px-3 py-1 text-[11px] font-bold transition ${
+                        c.trackingEnabled
+                          ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                          : "bg-gray-100 text-gray-600 hover:bg-yellow-100 hover:text-yellow-900"
+                      }`}
+                    >
+                      {c.trackingEnabled ? "Activé (Désactiver)" : "Activer le lien"}
+                    </button>
+                  </div>
+
+                  {c.trackingEnabled && c.trackingCode && (
+                    <div className="mt-2.5 rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 space-y-2.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-gray-700 truncate max-w-[230px]">
+                          <Link2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                          /suivi/{c.trackingCode}
+                        </span>
+                        <span className="rounded-lg bg-[#0B1F44] px-2.5 py-1 text-xs font-black tracking-widest text-yellow-400">
+                          PIN : {c.trackingPin}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => copyTrackingAccess(c)}
+                          className="inline-flex items-center gap-1 rounded-lg bg-white border border-gray-200 px-2.5 py-1.5 text-[11px] font-bold text-gray-700 hover:bg-gray-50 transition"
+                        >
+                          {copiedId === c.id ? (
+                            <>
+                              <Check className="h-3.5 w-3.5 text-emerald-600" />{" "}
+                              Copié !
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-3.5 w-3.5" /> Copier lien + PIN
+                            </>
+                          )}
+                        </button>
+                        {c.clientPhone && (
+                          <a
+                            href={whatsappLinkForPhone(
+                              c.clientPhone,
+                              `Bonjour ${c.clientName || ""},\n\nVous pouvez suivre l'avancement et les photos de votre chantier « ${c.name} » en direct sur votre espace privé TANKECH :\n🔗 Lien : ${getTrackingUrl(c.trackingCode)}\n🔐 Code PIN : ${c.trackingPin}`
+                            )}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 rounded-lg bg-[#25D366] px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-green-600 transition"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" /> Envoyer
+                            sur WhatsApp
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => regenerateTracking(c)}
+                          title="Révoquer l'ancien lien et générer un nouveau code PIN"
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-gray-500 hover:text-gray-900 transition"
+                        >
+                          <RefreshCw className="h-3 w-3" /> Régénérer
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

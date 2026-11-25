@@ -1,7 +1,41 @@
+import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebaseAdmin";
-import type { ChantierRecord, ChantierStatus } from "@/lib/types";
+import type { ChantierPhoto, ChantierRecord, ChantierStatus } from "@/lib/types";
+
+function generateTrackingCode(): string {
+  return crypto.randomBytes(12).toString("hex");
+}
+
+function generateTrackingPin(): string {
+  return String(crypto.randomInt(1000, 10000));
+}
+
+function sanitizePhotoUrl(raw: unknown): string {
+  const url = String(raw ?? "").trim().slice(0, 1000);
+  if (!url || url.includes("..")) return "";
+  if (url.startsWith("https://")) return url;
+  if (!url.startsWith("//") && /^\/[a-zA-Z0-9._/-]+$/.test(url)) return url;
+  return "";
+}
+
+function normalizePhotos(raw: unknown): ChantierPhoto[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((item): item is Record<string, unknown> =>
+      Boolean(item && typeof item === "object")
+    )
+    .map((item, idx) => ({
+      id: String(item.id || `photo-${Date.now()}-${idx}`).slice(0, 80),
+      url: sanitizePhotoUrl(item.url),
+      caption: String(item.caption ?? "").trim().slice(0, 150),
+      stage: String(item.stage ?? "").trim().slice(0, 60),
+      date: String(item.date ?? "").trim().slice(0, 30),
+    }))
+    .filter((p) => p.url.length > 0)
+    .slice(0, 30);
+}
 
 const ALLOWED_STATUSES: ChantierStatus[] = [
   "planifie",
@@ -34,7 +68,9 @@ export async function PATCH(
   const { id } = await params;
 
   try {
-    const body = (await request.json()) as Partial<ChantierRecord>;
+    const body = (await request.json()) as Partial<ChantierRecord> & {
+      regenerateTracking?: boolean;
+    };
     const updates: Record<string, unknown> = {
       updatedAt: FieldValue.serverTimestamp(),
     };
@@ -76,6 +112,26 @@ export async function PATCH(
       updates.assignedWorkerIds = body.assignedWorkerIds
         .map(String)
         .slice(0, 50);
+    }
+    if (Array.isArray(body.photos)) {
+      updates.photos = normalizePhotos(body.photos);
+    }
+    if (body.regenerateTracking) {
+      updates.trackingCode = generateTrackingCode();
+      updates.trackingPin = generateTrackingPin();
+      updates.trackingEnabled = true;
+    } else if (typeof body.trackingEnabled === "boolean") {
+      updates.trackingEnabled = body.trackingEnabled;
+      if (body.trackingEnabled) {
+        const snap = await db.collection("chantiers").doc(id).get();
+        const existing = snap.data();
+        if (!existing?.trackingCode) {
+          updates.trackingCode = generateTrackingCode();
+        }
+        if (!existing?.trackingPin) {
+          updates.trackingPin = generateTrackingPin();
+        }
+      }
     }
     if (typeof body.notes === "string") {
       updates.notes = body.notes.slice(0, 2000);

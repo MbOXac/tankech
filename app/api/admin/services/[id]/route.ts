@@ -71,6 +71,7 @@ export async function PATCH(
     await db.collection("services").doc(id).update(updates);
     revalidatePath("/");
     revalidatePath("/services");
+    revalidatePath(`/services/${id}`);
     revalidatePath("/contact");
     return NextResponse.json({ ok: true });
   } catch (err) {
@@ -108,6 +109,7 @@ export async function DELETE(
     await db.collection("services").doc(id).delete();
     revalidatePath("/");
     revalidatePath("/services");
+    revalidatePath(`/services/${id}`);
     revalidatePath("/contact");
     return NextResponse.json({ ok: true });
   } catch (err) {

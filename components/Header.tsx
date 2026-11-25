@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { siteConfig, whatsappLink } from "@/data/siteConfig";
 import { Menu, X, Phone, MessageCircle } from "lucide-react";
 
@@ -15,6 +17,11 @@ const navLinks = [
 export default function Header() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
+  const isLightHero = Boolean(
+    pathname && (pathname === "/services" || pathname.startsWith("/services/"))
+  );
+  const solidNav = scrolled || isLightHero;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -25,8 +32,8 @@ export default function Header() {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? "bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-100"
+        solidNav
+          ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100"
           : "bg-transparent"
       }`}
     >
@@ -64,17 +71,26 @@ export default function Header() {
       {/* Main nav */}
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:py-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-3 group">
           <span
-            className={`text-2xl font-black tracking-tight transition-colors duration-300 ${
-              scrolled ? "text-gray-900" : "text-white"
+            className={`inline-flex items-center justify-center rounded-xl transition-all duration-300 ${
+              solidNav
+                ? "p-0.5"
+                : "bg-white/95 px-2.5 py-1 shadow-md ring-1 ring-white/40"
             }`}
           >
-            TANKECH
+            <Image
+              src={siteConfig.logo}
+              alt={`${siteConfig.name} — ${siteConfig.tagline}`}
+              width={64}
+              height={55}
+              preload
+              className="h-10 w-auto object-contain"
+            />
           </span>
           <span
-            className={`hidden lg:inline text-xs font-medium transition-colors duration-300 ${
-              scrolled ? "text-gray-500" : "text-white/70"
+            className={`hidden xl:inline text-xs font-medium transition-colors duration-300 ${
+              solidNav ? "text-gray-500" : "text-white/80"
             }`}
           >
             {siteConfig.tagline}
@@ -88,7 +104,7 @@ export default function Header() {
               key={link.href}
               href={link.href}
               className={`text-sm font-medium transition-colors hover:text-yellow-500 ${
-                scrolled ? "text-gray-700" : "text-white/90"
+                solidNav ? "text-gray-700" : "text-white/90"
               }`}
             >
               {link.label}
@@ -106,7 +122,7 @@ export default function Header() {
         <button
           onClick={() => setOpen(!open)}
           className={`md:hidden p-2 transition-colors ${
-            scrolled ? "text-gray-900" : "text-white"
+            solidNav ? "text-gray-900" : "text-white"
           }`}
           aria-label="Menu"
         >

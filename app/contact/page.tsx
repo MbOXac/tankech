@@ -20,8 +20,19 @@ export const metadata: Metadata = {
 
 export const revalidate = 60;
 
-export default async function ContactPage() {
-  const services = await getPublicServices();
+export default async function ContactPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ service?: string; message?: string }>;
+}) {
+  const [services, query] = await Promise.all([
+    getPublicServices(),
+    searchParams,
+  ]);
+  const defaultService =
+    typeof query.service === "string" ? query.service.slice(0, 100) : "";
+  const defaultMessage =
+    typeof query.message === "string" ? query.message.slice(0, 1500) : "";
 
   return (
     <>
@@ -169,7 +180,11 @@ export default async function ContactPage() {
             <div className="lg:col-span-3">
               <ScrollReveal delay={100}>
                 <div className="rounded-2xl bg-white border border-gray-100 shadow-lg p-8 md:p-10">
-                  <ContactForm services={services} />
+                  <ContactForm
+                    services={services}
+                    defaultService={defaultService}
+                    defaultMessage={defaultMessage}
+                  />
                 </div>
               </ScrollReveal>
             </div>

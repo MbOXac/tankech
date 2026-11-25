@@ -1,7 +1,41 @@
+import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue, type Timestamp } from "firebase-admin/firestore";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebaseAdmin";
-import type { ChantierRecord, ChantierStatus } from "@/lib/types";
+import type { ChantierPhoto, ChantierRecord, ChantierStatus } from "@/lib/types";
+
+function generateTrackingCode(): string {
+  return crypto.randomBytes(12).toString("hex");
+}
+
+function generateTrackingPin(): string {
+  return String(crypto.randomInt(1000, 10000));
+}
+
+function sanitizePhotoUrl(raw: unknown): string {
+  const url = String(raw ?? "").trim().slice(0, 1000);
+  if (!url || url.includes("..")) return "";
+  if (url.startsWith("https://")) return url;
+  if (!url.startsWith("//") && /^\/[a-zA-Z0-9._/-]+$/.test(url)) return url;
+  return "";
+}
+
+function normalizePhotos(raw: unknown): ChantierPhoto[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((item): item is Record<string, unknown> =>
+      Boolean(item && typeof item === "object")
+    )
+    .map((item, idx) => ({
+      id: String(item.id || `photo-${Date.now()}-${idx}`).slice(0, 80),
+      url: sanitizePhotoUrl(item.url),
+      caption: String(item.caption ?? "").trim().slice(0, 150),
+      stage: String(item.stage ?? "").trim().slice(0, 60),
+      date: String(item.date ?? "").trim().slice(0, 30),
+    }))
+    .filter((p) => p.url.length > 0)
+    .slice(0, 30);
+}
 
 const ALLOWED_STATUSES: ChantierStatus[] = [
   "planifie",
@@ -62,6 +96,10 @@ export async function GET(request: NextRequest) {
         assignedWorkerIds: Array.isArray(d.assignedWorkerIds)
           ? d.assignedWorkerIds.map(String)
           : [],
+        photos: normalizePhotos(d.photos),
+        trackingCode: d.trackingCode ? String(d.trackingCode) : "",
+        trackingPin: d.trackingPin ? String(d.trackingPin) : "",
+        trackingEnabled: Boolean(d.trackingEnabled),
         notes: String(d.notes ?? ""),
         createdAt: toIso(d.createdAt),
         updatedAt: toIso(d.updatedAt),
@@ -125,6 +163,10 @@ export async function POST(request: NextRequest) {
       assignedWorkerIds: Array.isArray(body.assignedWorkerIds)
         ? body.assignedWorkerIds.map(String).slice(0, 50)
         : [],
+      photos: normalizePhotos(body.photos),
+      trackingCode: generateTrackingCode(),
+      trackingPin: generateTrackingPin(),
+      trackingEnabled: false,
       notes: String(body.notes ?? "").trim().slice(0, 2000),
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),

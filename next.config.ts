@@ -16,6 +16,10 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
+        hostname: "res.cloudinary.com",
+      },
+      {
+        protocol: "https",
         hostname: "firebasestorage.googleapis.com",
       },
       {
@@ -32,6 +36,13 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/admin/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Cache-Control", value: "no-store, max-age=0" },
+        ],
+      },
+      {
+        source: "/suivi/:path*",
         headers: [
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Cache-Control", value: "no-store, max-age=0" },

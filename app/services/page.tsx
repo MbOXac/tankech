@@ -1,35 +1,14 @@
 import { Metadata } from "next";
+import Link from "next/link";
 import ServicesGrid from "@/components/ServicesGrid";
 import ScrollReveal from "@/components/ScrollReveal";
 import { getPublicServices } from "@/lib/content";
-import FallbackImage from "@/components/FallbackImage";
 import { whatsappLink } from "@/data/siteConfig";
-import {
-  Building2,
-  Home,
-  Droplets,
-  Zap,
-  Paintbrush,
-  Wrench,
-  Layers,
-  ArrowRight,
-} from "lucide-react";
-import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Services",
   description:
-    "Découvrez tous les services TANKECH : gros œuvre, rénovation, plomberie, électricité, peinture, bricolage. Devis gratuit à Tanger.",
-};
-
-const iconMap: Record<string, React.ElementType> = {
-  Building2,
-  Home,
-  Droplets,
-  Zap,
-  Paintbrush,
-  Wrench,
-  Layers,
+    "Découvrez tous les services TANKECH : gros œuvre, rénovation, plomberie, électricité, peinture, bricolage et résine époxy. Devis gratuit à Tanger.",
 };
 
 export const revalidate = 60;
@@ -39,148 +18,31 @@ export default async function ServicesPage() {
 
   return (
     <>
-      {/* Hero */}
-      <section className="relative bg-gray-900 pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-yellow-900/20" />
-        <div className="relative z-10 mx-auto max-w-7xl px-4 text-center">
-          <span className="inline-block rounded-full bg-yellow-500/10 px-4 py-1.5 text-sm font-semibold text-yellow-400 mb-6">
+      {/* Clean Light Architectural Header (matches /services/[slug] seamlessly) */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#FAF8F4] via-white to-gray-50 border-b border-stone-200/70 pt-32 pb-12 md:pt-40 md:pb-16">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-20 right-1/4 h-72 w-72 rounded-full bg-amber-200/25 blur-3xl"
+        />
+        <div className="relative z-10 mx-auto max-w-4xl px-4 text-center">
+          <span className="inline-block rounded-full bg-amber-100 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-amber-800 mb-4">
             Nos Services
           </span>
-          <h1 className="text-4xl md:text-6xl font-black text-white">
-            {services.length} domaines d&apos;expertise, <br className="hidden md:block" />
-            <span className="text-yellow-400">un seul interlocuteur</span>
+          <h1 className="text-4xl md:text-5xl font-black text-[#0B1F44] tracking-tight">
+            {services.length} domaines d&apos;expertise,{" "}
+            <span className="text-amber-600">un seul interlocuteur</span>
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-white/60">
-            Du gros œuvre au bricolage, TANKECH vous accompagne avec des
-            artisans qualifiés, des garanties solides et une intervention rapide
-            24/7.
+          <p className="mx-auto mt-4 max-w-2xl text-base md:text-lg text-gray-600">
+            Sélectionnez un service ci-dessous pour découvrir toutes nos
+            prestations détaillées et demander votre devis gratuit à Tanger.
           </p>
         </div>
       </section>
 
-      {/* Quick category nav */}
-      <section className="bg-gray-50 border-b border-gray-100">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="flex overflow-x-auto gap-2 py-4 scrollbar-hide">
-            {services.map((s) => {
-              const Icon = iconMap[s.icon] ?? Building2;
-              return (
-                <a
-                  key={s.slug}
-                  href={`#${s.slug}`}
-                  className="flex shrink-0 items-center gap-2 rounded-full border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition hover:border-yellow-400 hover:text-yellow-600"
-                >
-                  <Icon className="h-4 w-4" />
-                  {s.title}
-                </a>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      {/* Single unified services list — clicking any category opens /services/[slug] smoothly */}
+      <ServicesGrid services={services} hideHeader />
 
-      {/* Interactive services grid */}
-      <ServicesGrid services={services} />
-
-      {/* Detailed sections per category */}
-      {services.map((cat, i) => {
-        const Icon = iconMap[cat.icon] ?? Building2;
-        const isEven = i % 2 === 0;
-
-        return (
-          <section
-            key={cat.slug}
-            id={cat.slug}
-            className={`py-16 md:py-24 ${isEven ? "bg-white" : "bg-gray-50"}`}
-          >
-            <div className="mx-auto max-w-7xl px-4">
-              <ScrollReveal>
-                <div
-                  className={`grid gap-12 lg:grid-cols-2 items-center ${
-                    isEven ? "" : "lg:grid-flow-dense"
-                  }`}
-                >
-                  {/* Image side */}
-                  <div
-                    className={`relative isolate h-72 md:h-96 rounded-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-gray-600 ${
-                      isEven ? "" : "lg:col-start-2"
-                    }`}
-                  >
-                    <FallbackImage
-                      src={cat.coverImage}
-                      alt={cat.title}
-                      sizes="(max-width: 1024px) 100vw, 50vw"
-                      className="object-cover"
-                    />
-                    {/* Badge floating */}
-                    <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2 rounded-xl bg-white/90 backdrop-blur-sm px-4 py-2 text-sm font-bold text-gray-800 shadow">
-                      <Icon className="h-5 w-5 text-yellow-500" />
-                      {cat.title}
-                    </div>
-                  </div>
-
-                  {/* Text side */}
-                  <div>
-                    <h2 className="text-3xl md:text-4xl font-black text-gray-900">
-                      {cat.title}
-                    </h2>
-                    <div
-                      className={`mt-3 inline-block rounded-lg px-3 py-1 text-xs font-bold text-white ${
-                        cat.badgeColor === "red"
-                          ? "bg-red-600"
-                          : cat.badgeColor === "blue"
-                          ? "bg-blue-700"
-                          : cat.badgeColor === "green"
-                          ? "bg-emerald-600"
-                          : cat.badgeColor === "purple"
-                          ? "bg-purple-700"
-                          : cat.badgeColor === "yellow"
-                          ? "bg-amber-600"
-                          : "bg-orange-500"
-                      }`}
-                    >
-                      {cat.badge}
-                    </div>
-                    <p className="mt-6 text-gray-600 leading-relaxed">
-                      {cat.longDescription}
-                    </p>
-
-                    {/* Sub-services grid */}
-                    <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                      {cat.services.map((s) => (
-                        <div
-                          key={s.id}
-                          className="flex items-start gap-2 rounded-lg border border-gray-100 p-3"
-                        >
-                          <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-yellow-500" />
-                          <div>
-                            <p className="text-sm font-semibold text-gray-800">
-                              {s.name}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              {s.description}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <Link
-                      href="/contact"
-                      className="mt-8 inline-flex items-center gap-2 rounded-xl bg-yellow-500 px-6 py-3 text-sm font-bold text-gray-900 shadow transition hover:bg-yellow-400 hover:shadow-lg active:scale-95"
-                    >
-                      Demander un Devis — {cat.title}
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </div>
-                </div>
-              </ScrollReveal>
-            </div>
-          </section>
-        );
-      })}
-
-      {/* CTA */}
+      {/* Bottom CTA */}
       <section className="bg-yellow-500 py-16">
         <ScrollReveal>
           <div className="mx-auto max-w-3xl px-4 text-center">
@@ -194,7 +56,7 @@ export default async function ServicesPage() {
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/contact"
-                className="rounded-xl bg-gray-900 px-8 py-4 text-base font-bold text-white shadow-lg transition hover:bg-gray-800"
+                className="rounded-xl bg-[#0B1F44] px-8 py-4 text-base font-bold text-white shadow-lg transition hover:bg-gray-900"
               >
                 Contactez-nous
               </Link>

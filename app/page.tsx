@@ -1,5 +1,6 @@
 import Hero from "@/components/Hero";
 import ServicesGrid from "@/components/ServicesGrid";
+import BudgetEstimator from "@/components/BudgetEstimator";
 import ProjectsGallery from "@/components/ProjectsGallery";
 import WhyUs from "@/components/WhyUs";
 import Stats from "@/components/Stats";
@@ -33,6 +34,9 @@ export default async function HomePage() {
 
       {/* Stats — Animated counters */}
       <Stats />
+
+      {/* Budget Estimator — Interactive DH/m² simulator */}
+      <BudgetEstimator />
 
       {/* Why Us — 6 reasons */}
       <WhyUs />

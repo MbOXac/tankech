@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Project } from "@/data/projectsData";
 import type { Testimonial } from "@/data/testimonialsData";
 import type { ServiceCategory } from "@/data/servicesData";
+import ImageUploader from "@/components/admin/ImageUploader";
 import {
   Plus,
   Trash2,
@@ -191,24 +192,27 @@ export default function AdminShowcase({
               }
               className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
             />
-            <input
-              required
-              type="text"
-              placeholder="Image Après (/services/renovation.jpg ou https://…)"
+            <ImageUploader
+              label="Photo Après (résultat final) *"
               value={newProject.afterImage}
-              onChange={(e) =>
-                setNewProject({ ...newProject, afterImage: e.target.value })
+              onChange={(url) =>
+                setNewProject({ ...newProject, afterImage: url })
               }
-              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
+              folder="tankech/projects"
+              authFetch={authFetch}
+              placeholder="/services/renovation.jpg"
+              compact
             />
-            <input
-              type="text"
-              placeholder="Image Avant (optionnel)"
+            <ImageUploader
+              label="Photo Avant (active le slider Avant/Après)"
               value={newProject.beforeImage}
-              onChange={(e) =>
-                setNewProject({ ...newProject, beforeImage: e.target.value })
+              onChange={(url) =>
+                setNewProject({ ...newProject, beforeImage: url })
               }
-              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
+              folder="tankech/projects"
+              authFetch={authFetch}
+              placeholder="Optionnel — ajoutez pour comparer Avant/Après"
+              compact
             />
             <textarea
               rows={3}

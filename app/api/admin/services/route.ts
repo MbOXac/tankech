@@ -183,6 +183,7 @@ export async function POST(request: NextRequest) {
 
     revalidatePath("/");
     revalidatePath("/services");
+    revalidatePath(`/services/${slug}`);
     revalidatePath("/contact");
     return NextResponse.json({ ok: true, slug }, { status: 201 });
   } catch (err) {

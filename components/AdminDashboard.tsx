@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -12,6 +13,7 @@ import {
   getClientAuth,
   isFirebaseClientConfigured,
 } from "@/lib/firebaseClient";
+import { siteConfig } from "@/data/siteConfig";
 import { servicesData, type ServiceCategory } from "@/data/servicesData";
 import type { Project } from "@/data/projectsData";
 import type { Testimonial } from "@/data/testimonialsData";
@@ -333,12 +335,20 @@ export default function AdminDashboard() {
       <div className="flex min-h-screen items-center justify-center bg-gray-950 px-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
           <div className="mb-6 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gray-900 text-yellow-400">
-              <HardHat className="h-6 w-6" />
+            <div className="mx-auto mb-3 inline-flex items-center justify-center rounded-2xl bg-gray-50 border border-gray-100 px-4 py-3 shadow-sm">
+              <Image
+                src={siteConfig.logo}
+                alt={siteConfig.name}
+                width={100}
+                height={85}
+                className="h-14 w-auto object-contain"
+              />
             </div>
-            <span className="inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs font-bold text-yellow-800">
-              TANKECH PRO — ERP
-            </span>
+            <div>
+              <span className="inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs font-bold text-yellow-800">
+                TANKECH PRO — ERP
+              </span>
+            </div>
             <h1 className="mt-3 text-2xl font-black text-gray-900">
               Espace Administrateur
             </h1>
@@ -412,10 +422,16 @@ export default function AdminDashboard() {
   const renderSidebarContent = () => (
     <div className="flex h-full flex-col bg-gray-950 text-white">
       {/* Brand */}
-      <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
+      <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-500 text-gray-950 font-black">
-            <HardHat className="h-5 w-5" />
+          <div className="flex h-11 w-12 items-center justify-center rounded-xl bg-white p-1.5 shadow">
+            <Image
+              src={siteConfig.logo}
+              alt={siteConfig.name}
+              width={48}
+              height={41}
+              className="h-full w-auto object-contain"
+            />
           </div>
           <div>
             <p className="text-base font-black tracking-tight leading-none">

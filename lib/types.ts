@@ -57,6 +57,14 @@ export const CHANTIER_STATUS_LABELS: Record<ChantierStatus, string> = {
   annule: "Annulé",
 };
 
+export interface ChantierPhoto {
+  id: string;
+  url: string;
+  caption: string;
+  stage: string;
+  date: string;
+}
+
 export interface ChantierRecord {
   id: string;
   name: string;
@@ -71,6 +79,10 @@ export interface ChantierRecord {
   startDate: string;
   endDate: string;
   assignedWorkerIds: string[];
+  photos: ChantierPhoto[];
+  trackingCode?: string;
+  trackingPin?: string;
+  trackingEnabled?: boolean;
   notes: string;
   createdAt: string;
   updatedAt: string;

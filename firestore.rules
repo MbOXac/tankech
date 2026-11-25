@@ -79,6 +79,12 @@ rules_version = '2';
 //      - endDate:           string (required, 0..30 chars)
 //      - assignedWorkerIds: list<string> (required, <= 50 items, each 1..128 chars)
 //      - notes:             string (required, 0..2000 chars)
+//      - photos:            list<map> (optional, <= 30 items, each {id: string(1..80),
+//                           url: validImageUrl, caption: string(0..150),
+//                           stage: string(0..60), date: string(0..30)})
+//      - trackingCode:      string (optional, 0..64 chars, empty or hex/alphanumeric)
+//      - trackingPin:       string (optional, 0..10 chars, empty or digits only)
+//      - trackingEnabled:   bool (optional)
 //      - createdAt:         timestamp (required, immutable)
 //      - updatedAt:         timestamp (required, >= createdAt)
 //
@@ -306,6 +312,46 @@ service cloud.firestore {
         isValidWorkerIdChunk10(list, 40);
     }
 
+    // Deep array inspection for chantiers.photos (optional, max 30 progress photo maps:
+    // {id, url, caption, stage, date})
+    function isValidChantierPhoto(photo) {
+      return photo is map &&
+        photo.keys().hasAll(['id', 'url', 'caption', 'stage', 'date']) &&
+        photo.keys().hasOnly(['id', 'url', 'caption', 'stage', 'date']) &&
+        isValidString(photo.id, 1, 80) &&
+        isValidImageUrl(photo.url) &&
+        isValidString(photo.caption, 0, 150) &&
+        isValidString(photo.stage, 0, 60) &&
+        isValidString(photo.date, 0, 30);
+    }
+
+    function isValidChantierPhotoItem(list, idx) {
+      return idx >= list.size() || isValidChantierPhoto(list[idx]);
+    }
+
+    function isValidChantierPhotoChunk10(list, start) {
+      return start >= list.size() || (
+        isValidChantierPhotoItem(list, start) &&
+        isValidChantierPhotoItem(list, start + 1) &&
+        isValidChantierPhotoItem(list, start + 2) &&
+        isValidChantierPhotoItem(list, start + 3) &&
+        isValidChantierPhotoItem(list, start + 4) &&
+        isValidChantierPhotoItem(list, start + 5) &&
+        isValidChantierPhotoItem(list, start + 6) &&
+        isValidChantierPhotoItem(list, start + 7) &&
+        isValidChantierPhotoItem(list, start + 8) &&
+        isValidChantierPhotoItem(list, start + 9)
+      );
+    }
+
+    function isValidChantierPhotosList(list) {
+      return list is list &&
+        list.size() <= 30 &&
+        isValidChantierPhotoChunk10(list, 0) &&
+        isValidChantierPhotoChunk10(list, 10) &&
+        isValidChantierPhotoChunk10(list, 20);
+    }
+
     // Deep array inspection for services.services (max 30 sub-service maps: {id, name, description})
     function isValidSubServiceItem(list, idx) {
       return idx >= list.size() || (
@@ -419,8 +465,15 @@ service cloud.firestore {
         'status', 'progress', 'budget', 'spent', 'startDate', 'endDate',
         'assignedWorkerIds', 'notes', 'createdAt', 'updatedAt'
       ];
+      let allowedFields = [
+        'name', 'clientName', 'clientPhone', 'location', 'category',
+        'status', 'progress', 'budget', 'spent', 'startDate', 'endDate',
+        'assignedWorkerIds', 'notes', 'photos',
+        'trackingCode', 'trackingPin', 'trackingEnabled',
+        'createdAt', 'updatedAt'
+      ];
       return hasRequiredFields(requiredFields) &&
-        hasOnlyAllowedFields(requiredFields) &&
+        hasOnlyAllowedFields(allowedFields) &&
         isValidString(data.name, 1, 150) &&
         isValidString(data.clientName, 0, 120) &&
         isValidString(data.clientPhone, 0, 30) &&
@@ -436,6 +489,10 @@ service cloud.firestore {
         isValidString(data.endDate, 0, 30) &&
         isValidWorkerIdList(data.assignedWorkerIds) &&
         isValidString(data.notes, 0, 2000) &&
+        (!('photos' in data) || isValidChantierPhotosList(data.photos)) &&
+        (!('trackingCode' in data) || (isValidString(data.trackingCode, 0, 64) && (data.trackingCode.size() == 0 || data.trackingCode.matches("^[a-zA-Z0-9]+$")))) &&
+        (!('trackingPin' in data) || (isValidString(data.trackingPin, 0, 10) && (data.trackingPin.size() == 0 || data.trackingPin.matches("^[0-9]+$")))) &&
+        (!('trackingEnabled' in data) || data.trackingEnabled is bool) &&
         data.createdAt is timestamp &&
         data.updatedAt is timestamp &&
         data.updatedAt >= data.createdAt;

@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import ScrollReveal from "@/components/ScrollReveal";
 import FallbackImage from "@/components/FallbackImage";
+import BrochureButton from "@/components/BrochureButton";
 import { whatsappLink } from "@/data/siteConfig";
 import Link from "next/link";
 import {
@@ -69,6 +70,9 @@ export default function AboutPage() {
             construction et rénovation d&apos;exception à Tanger et dans tout le Nord
             du Maroc.
           </p>
+          <div className="mt-8">
+            <BrochureButton variant="dark" />
+          </div>
         </div>
       </section>
 

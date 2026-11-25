@@ -188,6 +188,7 @@ export default function DevisGeneratorModal({ quote, onClose }: Props) {
 
   const handlePrintPdf = () => {
     const signatureImg = getSignatureDataUrl();
+    const logoUrl = `${window.location.origin}${siteConfig.logo}`;
     const refNumber = `DEV-${quote.id.slice(0, 6).toUpperCase()}`;
     const quoteDate = new Date(quote.createdAt).toLocaleDateString("fr-MA");
 
@@ -271,10 +272,15 @@ export default function DevisGeneratorModal({ quote, onClose }: Props) {
 <body>
   <div class="page">
     <div class="header">
-      <div class="brand">
-        <h1>${escapeHtml(siteConfig.name)}</h1>
-        <div class="tagline">${escapeHtml(siteConfig.tagline)}</div>
-        <div class="contact">Tél : ${escapeHtml(siteConfig.phone)} • ${escapeHtml(siteConfig.email)} • ${escapeHtml(siteConfig.address)}</div>
+      <div class="brand" style="display:flex;align-items:center;gap:16px;">
+        <div style="background:#ffffff;border-radius:10px;padding:6px 10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <img src="${escapeHtml(logoUrl)}" alt="TANKECH" style="height:52px;width:auto;object-fit:contain;" />
+        </div>
+        <div>
+          <h1>${escapeHtml(siteConfig.name)}</h1>
+          <div class="tagline">${escapeHtml(siteConfig.tagline)}</div>
+          <div class="contact">Tél : ${escapeHtml(siteConfig.phone)} • ${escapeHtml(siteConfig.email)} • ${escapeHtml(siteConfig.address)}</div>
+        </div>
       </div>
       <div class="badge-box">
         <div class="doc-type">DEVIS</div>

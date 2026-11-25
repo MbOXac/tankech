@@ -11,9 +11,10 @@ export default function PublicChrome({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isAdmin = pathname?.startsWith("/admin");
+  const hideChrome =
+    pathname?.startsWith("/admin") || pathname?.startsWith("/suivi");
 
-  if (isAdmin) {
+  if (hideChrome) {
     return <>{children}</>;
   }
 

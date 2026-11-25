@@ -23,12 +23,20 @@ interface SubmitResult {
 
 interface ContactFormProps {
   services?: ServiceCategory[];
+  defaultService?: string;
+  defaultMessage?: string;
 }
 
 export default function ContactForm({
   services = servicesData,
+  defaultService = "",
+  defaultMessage = "",
 }: ContactFormProps) {
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState({
+    ...initialForm,
+    service: defaultService,
+    message: defaultMessage,
+  });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SubmitResult | null>(null);
